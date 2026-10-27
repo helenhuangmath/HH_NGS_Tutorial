@@ -1269,11 +1269,13 @@ def fig_crispr():
     guide_lfc_r1 = guide_eff + rng.normal(0, 0.35, ng)
     guide_lfc_r2 = guide_eff + rng.normal(0, 0.35, ng)
 
-    fig = plt.figure(figsize=(DOUBLE, 4.4))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1, 1.05], hspace=0.6, wspace=0.45)
+    fig = plt.figure(figsize=(DOUBLE, 5.6))
+    gs = fig.add_gridspec(2, 1, height_ratios=[1, 2.2], hspace=0.32)
+    top = gs[0].subgridspec(1, 3, wspace=0.45)
+    bot = gs[1].subgridspec(1, 3, width_ratios=[1.4, 1.05, 1.35], wspace=0.6)
 
     # a  sgRNA count distributions
-    ax = fig.add_subplot(gs[0, 0])
+    ax = fig.add_subplot(top[0, 0])
     cols = ["#000000", "#8C8C8C", OI["sky"], OI["blue"], OI["orange"], OI["red"]]
     grid = np.linspace(0, 16, 300)
     ginis, zeros = [], []
@@ -1291,7 +1293,7 @@ def fig_crispr():
     label(ax, "a", x=-0.28)
 
     # b  library QC: Gini index and zero-count guides
-    ax = fig.add_subplot(gs[0, 1])
+    ax = fig.add_subplot(top[0, 1])
     yy = np.arange(len(samples))
     ax.barh(yy, ginis, color=cols, height=0.65)
     ax.axvline(0.2, ls="--", lw=0.4, color="#555555")
@@ -1303,7 +1305,7 @@ def fig_crispr():
     label(ax, "b", x=-0.42)
 
     # c  replicate concordance (gene-level LFC)
-    ax = fig.add_subplot(gs[0, 2])
+    ax = fig.add_subplot(top[0, 2])
     g1 = np.median(guide_lfc_r1[: n_genes * g_per].reshape(n_genes, g_per), 1)
     g2 = np.median(guide_lfc_r2[: n_genes * g_per].reshape(n_genes, g_per), 1)
     r_val = stats.pearsonr(g1, g2)[0]
@@ -1318,31 +1320,35 @@ def fig_crispr():
     ax.text(0.04, 0.96, f"Pearson r = {r_val:.2f}", transform=ax.transAxes, va="top", fontsize=5.5)
     label(ax, "c", x=-0.3)
 
-    # d  gene rank plot
-    ax = fig.add_subplot(gs[1, :2])
+    # d  gene rank plot (tall panel; rank 1 = most enriched, on the left)
+    ax = fig.add_subplot(bot[0, 0])
     gl = (g1 + g2) / 2
-    order = np.argsort(-gl)                       # rank 1 = most enriched (left)
+    order = np.argsort(-gl)
     rank = np.empty(n_genes, int); rank[order] = np.arange(1, n_genes + 1)
     colr = np.where(np.isin(np.arange(n_genes), hi[: len(pos_hits)]), UP,
                     np.where(np.isin(np.arange(n_genes), hi[len(pos_hits):]), DOWN, "#BBBBBB"))
     ax.scatter(rank, gl, s=2, c=colr, lw=0, rasterized=True)
     ax.axhline(0, color="black", lw=0.4)
     ax.axhspan(-0.5, 0.5, color="#F0F0F0", lw=0, zorder=0)
-    ax.set_xlim(-60, n_genes + 60)
+    ax.set_xlim(-120, n_genes + 120)
+    ax.set_xticks([0, 500, 1000, 1500, 2000])
     ax.set_ylim(-4, 4)
     ax.set_xlabel("Gene rank")
     ax.set_ylabel("Median sgRNA log$_2$FC (tumour / day 0)")
-    ax.text(0.01, 0.04, "← enriched (KO advantage)", transform=ax.transAxes, ha="left",
-            fontsize=5, color=UP)
-    ax.text(0.99, 0.96, "depleted (KO disadvantage) →", transform=ax.transAxes, ha="right",
-            va="top", fontsize=5, color=DOWN)
-    lab_names = list(pos_hits) + list(neg_hits)
-    repel_labels(ax, rank[hi], gl[hi], lab_names, offset=(18, 0),
-                 avoid_xy=np.c_[rank[np.abs(gl) > 1], gl[np.abs(gl) > 1]])
-    label(ax, "d", x=-0.13)
+    t_up = ax.text(0.97, 0.99, "enriched\n(KO advantage)", transform=ax.transAxes,
+                   ha="right", va="top", fontsize=5, color=UP)
+    t_dn = ax.text(0.03, 0.01, "depleted\n(KO disadvantage)", transform=ax.transAxes,
+                   ha="left", va="bottom", fontsize=5, color=DOWN)
+    avoid = np.abs(gl) > 0.4
+    hp, hn = hi[: len(pos_hits)], hi[len(pos_hits):]
+    t_pos = repel_labels(ax, rank[hp], gl[hp], list(pos_hits), offset=(14, 0),
+                         fixed=(t_up, t_dn), avoid_xy=np.c_[rank[avoid], gl[avoid]])
+    repel_labels(ax, rank[hn], gl[hn], list(neg_hits), offset=(14, 0),
+                 fixed=(t_up, t_dn, *t_pos), avoid_xy=np.c_[rank[avoid], gl[avoid]])
+    label(ax, "d", x=-0.32, y=1.02)
 
     # e  sgRNA-level plot for top hits vs non-targeting controls
-    ax = fig.add_subplot(gs[1, 2])
+    ax = fig.add_subplot(bot[0, 1])
     show = ["Dhx37", "Pdcd1", "Cblb", "Myb", "Tbx21", "Cd28"]
     lfc_g = (guide_lfc_r1 + guide_lfc_r2) / 2
     ntc = lfc_g[n_genes * g_per:]
@@ -1366,7 +1372,43 @@ def fig_crispr():
     ax.invert_yaxis()
     ax.set_xlabel("sgRNA log$_2$FC (tumour / day 0)")
     ax.set_xlim(-4.5, 4.5)
-    label(ax, "e", x=-0.42)
+    ax.set_xticks([-4, -2, 0, 2, 4])
+    label(ax, "e", x=-0.55, y=1.02)
+
+    # f  sgRNAs of example genes against the distribution of all sgRNAs:
+    #    per gene, the library distribution (top) and that gene's guides (bottom strip)
+    dist = ["Pdcd1", "Dhx37", "Ptpn2", "Non-targeting", "Tbx21", "Myb"]
+    sub = bot[0, 2].subgridspec(len(dist), 1, hspace=0.35)
+    bins = np.linspace(-4.5, 4.5, 91)
+    for k, g in enumerate(dist):
+        pair = sub[k, 0].subgridspec(2, 1, height_ratios=[1.6, 1], hspace=0.08)
+        ax_h = fig.add_subplot(pair[0, 0])
+        ax_r = fig.add_subplot(pair[1, 0], sharex=ax_h)
+        ax_h.hist(lfc_g, bins=bins, color="#C8C8C8", lw=0, density=True)
+        if g == "Non-targeting":
+            v, c = ntc[:g_per], "#000000"
+        else:
+            gi = names.index(g)
+            v, c = lfc_g[gi * g_per:(gi + 1) * g_per], UP if g in pos_hits else DOWN
+        ax_r.vlines(v, 0, 1, color=c, lw=0.9)
+        ax_r.set_ylim(0, 1)
+        ax_h.set_xlim(-4.5, 4.5)
+        for a_ in (ax_h, ax_r):
+            a_.set_yticks([])
+            a_.spines["left"].set_visible(False)
+        ax_h.tick_params(axis="x", labelbottom=False, length=0)
+        ax_h.spines["bottom"].set_color("#BBBBBB")
+        ax_r.spines["bottom"].set_visible(False)
+        ax_r.set_facecolor("#F4F4F4")
+        ax_h.text(-0.03, 0.0, g, transform=ax_h.transAxes, ha="right", va="center", fontsize=5.5,
+                  style="normal" if g == "Non-targeting" else "italic")
+        if k < len(dist) - 1:
+            ax_r.tick_params(axis="x", labelbottom=False, length=0)
+        else:
+            ax_r.spines["bottom"].set_visible(True)
+            ax_r.set_xlabel("sgRNA log$_2$FC (tumour / day 0)")
+        if k == 0:
+            label(ax_h, "f", x=-0.42, y=1.15)
     save(fig, "fig11_crispr_screen")
 
 

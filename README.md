@@ -19,7 +19,7 @@ Every chapter gives parameterised commands, example outputs, Nature-style exampl
          │ 8 Tracks/heatmaps│◄──│ 7 Motifs / networks│◄──│ 5 Counts → DESeq2 → plots   │
          └──────────────────┘   └────────────────────┘   │ 6 Annotation / GO / GREAT   │
                                                          └─────────────────────────────┘
- RNA-seq ─► 9 STAR → featureCounts → DESeq2 → clustered heatmap
+ RNA-seq ─► 9 STAR → featureCounts → DESeq2 → clustered heatmap → GSEA
  Nuclear organisation ─► 10 SON TSA-seq · 11 Hi-C / HiChIP
  Screens              ─► 12 pooled CRISPR (MAGeCK)
  Single-cell          ─► 13 scRNA-seq · 14 scATAC-seq (chromVAR, tracks) · 15 spatial
@@ -27,36 +27,28 @@ Every chapter gives parameterised commands, example outputs, Nature-style exampl
 
 ## Chapters
 
-| # | Chapter | Covers | Figure |
-|---|---|---|---|
+Click a figure to open its chapter.
+
+| # | Chapter | Covers | Example figure |
+|---|---|---|:-:|
 | 0 | [Setup](tutorials/00_setup.md) | LSF `bsub`, project layout, reference files, modules, conda, tool installs | — |
 | 1 | [Data transfer](tutorials/01_data_transfer.md) | BaseSpace, `bcl2fastq`, SRA, Box, Dropbox, GEO upload, down-sampling | — |
-| 2 | [QC & trimming](tutorials/02_qc_trimming.md) | FastQC/MultiQC, Trimmomatic, cutadapt, insert size, strandedness, FRiP | [Fig. 1](tutorials/figures/fig1_qc.png) |
+| 2 | [QC & trimming](tutorials/02_qc_trimming.md) | FastQC/MultiQC, Trimmomatic, cutadapt, insert size, strandedness, FRiP | <a href="tutorials/02_qc_trimming.md"><img src="tutorials/figures/fig1_qc.png" width="260" alt="Fig. 1"></a><br><sub><b>Fig. 1</b> Library QC</sub> |
 | 3 | [CUT&RUN / ChIP alignment](tutorials/03_alignment_cutrun_chip.md) | bowtie2, filtering, Picard dedup, bigWig, spike-in, parallel jobs | — |
-| 4 | [Peak calling](tutorials/04_peak_calling.md) | MACS2 broad/IgG, filtering, consensus & union peaks, overlaps | [Fig. 2](tutorials/figures/fig2_peaks.png) |
-| 5 | [Differential analysis](tutorials/05_differential_analysis.md) | `multicov`/featureCounts, DESeq2, PCA, correlation, MA, volcano, box plots | [Fig. 4](tutorials/figures/fig4_differential.png) |
-| 6 | [Annotation & enrichment](tutorials/06_annotation_enrichment.md) | HOMER annotation, GREAT, REVIGO, biomaRt, clusterProfiler, Enrichr, Venn | [Fig. 5](tutorials/figures/fig5_annotation_boxplot.png) |
-| 7 | [Motif analysis](tutorials/07_motif_analysis.md) | HOMER, MEME AME/FIMO, logos, motif centrality, HINT footprinting, Cytoscape | [Fig. 6](tutorials/figures/fig6_motif_enrichment.png), [Fig. 10](tutorials/figures/fig10_motif_results.png) |
-| 8 | [Visualization](tutorials/08_visualization.md) | deepTools heatmaps, pooled bigWigs, UCSC tracks, Gviz | [Fig. 3](tutorials/figures/fig3_profile_heatmap.png), [Fig. 8](tutorials/figures/fig8_genome_tracks.png) |
-| 9 | [RNA-seq](tutorials/09_rnaseq.md) | STAR, featureCounts, count cleaning, ComplexHeatmap k-means, SQuIRE | [Fig. 7](tutorials/figures/fig7_rna_kmeans_heatmap.png) |
-| 10 | [SON TSA-seq](tutorials/10_tsa_seq.md) | sliding-window normalisation, speckle proximity vs expression | [Fig. 9](tutorials/figures/fig9_tsa_seq.png) |
-| 11 | [Hi-C / HiChIP](tutorials/11_hic.md) | HiC-Pro, HiCExplorer (P(s), TADs, insulation, track plots), FitHiChIP, HOMER | [Fig. 12](tutorials/figures/fig12_hic.png) |
-| 12 | [CRISPR screens](tutorials/12_crispr_screens.md) | MAGeCK count/test, library QC, rank plot, sgRNA plots, RIGER, CRISPRO | [Fig. 11](tutorials/figures/fig11_crispr_screen.png) |
-| 13 | [scRNA-seq](tutorials/13_scrnaseq.md) | Cell Ranger, QC, doublets, Harmony, clustering, markers, annotation, pseudobulk DE, SCENIC | [Fig. 13](tutorials/figures/fig13_scrnaseq.png) |
-| 14 | [scATAC-seq](tutorials/14_scatacseq.md) | Signac QC, LSI, label transfer, cell-type peaks, chromVAR, footprints, coverage tracks, ArchR | [Fig. 14](tutorials/figures/fig14_scatac.png) |
-| 15 | [Spatial transcriptomics](tutorials/15_spatial.md) | Scanpy + Harmony integration, clusters on tissue, Squidpy neighbourhoods | [Fig. 15](tutorials/figures/fig15_spatial.png) |
+| 4 | [Peak calling](tutorials/04_peak_calling.md) | MACS2 broad/IgG, filtering, consensus & union peaks, overlaps | <a href="tutorials/04_peak_calling.md"><img src="tutorials/figures/fig2_peaks.png" width="260" alt="Fig. 2"></a><br><sub><b>Fig. 2</b> Peaks</sub> |
+| 5 | [Differential analysis](tutorials/05_differential_analysis.md) | `multicov`/featureCounts, DESeq2, PCA, correlation, MA, volcano, box plots | <a href="tutorials/05_differential_analysis.md"><img src="tutorials/figures/fig4_differential.png" width="260" alt="Fig. 4"></a><br><sub><b>Fig. 4</b> Differential</sub> |
+| 6 | [Annotation & enrichment](tutorials/06_annotation_enrichment.md) | HOMER annotation, GREAT, REVIGO, biomaRt, clusterProfiler, Enrichr, Venn | <a href="tutorials/06_annotation_enrichment.md"><img src="tutorials/figures/fig5_annotation_boxplot.png" width="260" alt="Fig. 5"></a><br><sub><b>Fig. 5</b> Annotation</sub> |
+| 7 | [Motif analysis](tutorials/07_motif_analysis.md) | HOMER, MEME AME/FIMO, logos, motif centrality, HINT footprinting, Cytoscape | <a href="tutorials/07_motif_analysis.md"><img src="tutorials/figures/fig6_motif_enrichment.png" width="260" alt="Fig. 6"></a><br><sub><b>Fig. 6</b> Motifs & GO</sub><br><a href="tutorials/07_motif_analysis.md"><img src="tutorials/figures/fig10_motif_results.png" width="260" alt="Fig. 10"></a><br><sub><b>Fig. 10</b> Motif results</sub> |
+| 8 | [Visualization](tutorials/08_visualization.md) | deepTools heatmaps, pooled bigWigs, UCSC tracks, Gviz | <a href="tutorials/08_visualization.md"><img src="tutorials/figures/fig3_profile_heatmap.png" width="260" alt="Fig. 3"></a><br><sub><b>Fig. 3</b> Profile heatmap</sub><br><a href="tutorials/08_visualization.md"><img src="tutorials/figures/fig8_genome_tracks.png" width="260" alt="Fig. 8"></a><br><sub><b>Fig. 8</b> Tracks</sub> |
+| 9 | [RNA-seq](tutorials/09_rnaseq.md) | STAR, featureCounts, count cleaning, ComplexHeatmap k-means, GSEA (GSEA-CLI, fgsea, running-ES plots), SQuIRE | <a href="tutorials/09_rnaseq.md"><img src="tutorials/figures/fig7_rna_kmeans_heatmap.png" width="260" alt="Fig. 7"></a><br><sub><b>Fig. 7</b> RNA k-means</sub> |
+| 10 | [SON TSA-seq](tutorials/10_tsa_seq.md) | sliding-window normalisation, speckle proximity vs expression | <a href="tutorials/10_tsa_seq.md"><img src="tutorials/figures/fig9_tsa_seq.png" width="260" alt="Fig. 9"></a><br><sub><b>Fig. 9</b> TSA-seq</sub> |
+| 11 | [Hi-C / HiChIP](tutorials/11_hic.md) | HiC-Pro, HiCExplorer (P(s), TADs, insulation, track plots), FitHiChIP, HOMER | <a href="tutorials/11_hic.md"><img src="tutorials/figures/fig12_hic.png" width="260" alt="Fig. 12"></a><br><sub><b>Fig. 12</b> Hi-C</sub> |
+| 12 | [CRISPR screens](tutorials/12_crispr_screens.md) | MAGeCK count/test, merging per-sample count tables, library QC, rank plot, sgRNA plots, RIGER, CRISPRO | <a href="tutorials/12_crispr_screens.md"><img src="tutorials/figures/fig11_crispr_screen.png" width="260" alt="Fig. 11"></a><br><sub><b>Fig. 11</b> CRISPR screen</sub> |
+| 13 | [scRNA-seq](tutorials/13_scrnaseq.md) | Cell Ranger, QC, doublets, Harmony, clustering, markers, annotation, pseudobulk DE, SCENIC | <a href="tutorials/13_scrnaseq.md"><img src="tutorials/figures/fig13_scrnaseq.png" width="260" alt="Fig. 13"></a><br><sub><b>Fig. 13</b> scRNA-seq</sub> |
+| 14 | [scATAC-seq](tutorials/14_scatacseq.md) | Signac QC, LSI, label transfer, cell-type peaks, chromVAR, footprints, coverage tracks, ArchR | <a href="tutorials/14_scatacseq.md"><img src="tutorials/figures/fig14_scatac.png" width="260" alt="Fig. 14"></a><br><sub><b>Fig. 14</b> scATAC-seq</sub> |
+| 15 | [Spatial transcriptomics](tutorials/15_spatial.md) | Scanpy + Harmony integration, clusters on tissue, Squidpy neighbourhoods | <a href="tutorials/15_spatial.md"><img src="tutorials/figures/fig15_spatial.png" width="260" alt="Fig. 15"></a><br><sub><b>Fig. 15</b> Spatial</sub> |
 
-## Figure gallery
-
-| | | |
-|:-:|:-:|:-:|
-| [![](tutorials/figures/fig1_qc.png)](tutorials/02_qc_trimming.md) **1** Library QC | [![](tutorials/figures/fig2_peaks.png)](tutorials/04_peak_calling.md) **2** Peaks | [![](tutorials/figures/fig3_profile_heatmap.png)](tutorials/08_visualization.md) **3** Profile heatmap |
-| [![](tutorials/figures/fig4_differential.png)](tutorials/05_differential_analysis.md) **4** Differential | [![](tutorials/figures/fig5_annotation_boxplot.png)](tutorials/06_annotation_enrichment.md) **5** Annotation | [![](tutorials/figures/fig6_motif_enrichment.png)](tutorials/07_motif_analysis.md) **6** Motifs & GO |
-| [![](tutorials/figures/fig7_rna_kmeans_heatmap.png)](tutorials/09_rnaseq.md) **7** RNA k-means | [![](tutorials/figures/fig8_genome_tracks.png)](tutorials/08_visualization.md) **8** Tracks | [![](tutorials/figures/fig9_tsa_seq.png)](tutorials/10_tsa_seq.md) **9** TSA-seq |
-| [![](tutorials/figures/fig10_motif_results.png)](tutorials/07_motif_analysis.md) **10** Motif results | [![](tutorials/figures/fig11_crispr_screen.png)](tutorials/12_crispr_screens.md) **11** CRISPR screen | [![](tutorials/figures/fig12_hic.png)](tutorials/11_hic.md) **12** Hi-C |
-| [![](tutorials/figures/fig13_scrnaseq.png)](tutorials/13_scrnaseq.md) **13** scRNA-seq | [![](tutorials/figures/fig14_scatac.png)](tutorials/14_scatacseq.md) **14** scATAC-seq | [![](tutorials/figures/fig15_spatial.png)](tutorials/15_spatial.md) **15** Spatial |
-
-### Figure style (Nature guidelines)
+## Figure style (Nature guidelines)
 
 | Element | Setting |
 |---|---|
@@ -95,3 +87,5 @@ python3 scripts/make_example_figures.py      # needs numpy, scipy, matplotlib
 | scRNA-seq DE (ch. 13) | cells treated as replicates inflate significance | pseudobulk per sample + DESeq2 |
 | scATAC LSI (ch. 14) | LSI component 1 tracks sequencing depth | use components 2–30 |
 | CRISPR hits (ch. 12) | a single extreme guide | require several concordant guides outside the non-targeting range |
+| MAGeCK input (ch. 12) | pre-normalised, rounded counts passed to `mageck test` | give raw counts; let MAGeCK normalise (`--norm-method control`) |
+| GSEA plots (ch. 9) | running ES drawn by joining only the hit positions from the GSEA table | rebuild the full curve (`es_from_gsea()`), which drops between hits |
