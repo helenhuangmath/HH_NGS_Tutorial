@@ -1,4 +1,4 @@
-# 9 · Bulk RNA-seq: STAR → counts → clustered heatmap
+# 9 · Bulk RNA-seq: STAR → counts → clustered heatmap → GSEA
 
 [← Visualization](08_visualization.md) · [Index](../README.md) · [Next: TSA-seq →](10_tsa_seq.md)
 
@@ -157,7 +157,127 @@ dev.off()
 
 ---
 
-## 9.4 Transposable-element expression (SQuIRE)
+## 9.4 Gene set enrichment analysis (GSEA)
+
+GSEA tests whether the genes of a set (e.g. exhausted T-cell subset signatures) sit at the top or bottom of a list of **all** genes ranked by the DE statistic. Unlike over-representation analysis (chapter 6), no DEG cut-off is used, so do not pre-filter the ranked list.
+
+### Ranked list from DESeq2
+
+```r
+library(data.table); library(dplyr)
+
+res <- fread("DESeq2_KO_vs_Ctrl.txt")             # one row per gene: gene_name, stat, ...
+rnk <- res |>
+  filter(!is.na(stat), gene_name != "") |>
+  group_by(gene_name) |> slice_max(abs(stat), n = 1, with_ties = FALSE) |> ungroup() |>
+  arrange(desc(stat)) |> select(gene_name, stat)
+fwrite(rnk, "KO_vs_Ctrl.rnk", sep = "\t", col.names = FALSE)
+```
+
+Rank by the Wald `stat` (or `sign(log2FoldChange) * -log10(pvalue)`). Shrunken log₂ fold changes alone ignore the variance and give a poorer ranking.
+
+### Option A: GSEA preranked (Broad GSEA-CLI)
+
+```bash
+# gene sets: GMT file, one set per line (name, description, genes …), e.g. Tex_subsets.gmt
+gsea-cli.sh GSEAPreranked -rnk KO_vs_Ctrl.rnk -gmx Tex_subsets.gmt \
+  -collapse No_Collapse -scoring_scheme weighted -nperm 1000 -rnd_seed 149 \
+  -set_min 15 -set_max 500 -make_sets true -create_svgs false -zip_report false \
+  -rpt_label KO_vs_Ctrl -out gsea_out
+# → gsea_out/KO_vs_Ctrl.GseaPreranked.<id>/
+#     gsea_report_for_na_pos_<id>.tsv, gsea_report_for_na_neg_<id>.tsv   (NES, FDR q-val per set)
+#     <SET_NAME>.tsv   (one row per gene of the set: RANK IN GENE LIST, RANK METRIC SCORE, RUNNING ES)
+```
+
+GSEA ≤ 4.0 writes the per-set tables with an `.xls` extension; they are still tab-delimited text (`read.delim` reads both).
+
+### Option B: fgsea in R
+
+```r
+library(fgsea); library(tibble)
+
+ranks    <- deframe(rnk)                          # named vector, decreasing
+pathways <- gmtPathways("Tex_subsets.gmt")        # or split(msigdbr(...)$gene_symbol, ...$gs_name)
+fg <- fgseaMultilevel(pathways, ranks, minSize = 15, maxSize = 500, eps = 0) |> arrange(padj)
+fwrite(fg, "fgsea_KO_vs_Ctrl.txt", sep = "\t", sep2 = c("", ",", ""))
+```
+
+### Running-enrichment-score plot
+
+Both options feed the same plot. GSEA's per-set table lists only the genes in the set, so `es_from_gsea()` rebuilds the full curve. Between two hits the score falls by 1/(*N* − *N*ₕ) per gene. Joining only the hit positions would miss these drops and overstate the curve.
+
+```r
+library(ggplot2)
+# theme_nature() and save_fig() are defined in chapter 5
+
+## full running-ES curve from a GSEA <SET_NAME>.tsv; n_genes = length of the ranked list
+es_from_gsea <- function(tab, n_genes) {
+  r  <- tab$RANK.IN.GENE.LIST                     # 0-based positions of the hits
+  es <- tab$RUNNING.ES
+  d  <- 1 / (n_genes - length(r))                 # decrement per non-hit gene
+  jump <- es - (c(0, head(es, -1)) - (r - c(-1, head(r, -1)) - 1) * d)
+  step <- rep(-d, n_genes); step[r + 1] <- jump
+  hit  <- seq_len(n_genes) %in% (r + 1)
+  metric <- rep(NA_real_, n_genes); metric[r + 1] <- tab$RANK.METRIC.SCORE
+  data.frame(rank = seq_len(n_genes) - 1, es = cumsum(step), hit = hit, metric = metric)
+}
+
+## same curve computed directly from a ranked vector (weighted GSEA, p = 1)
+es_from_ranks <- function(ranks, genes) {
+  ranks <- sort(ranks, decreasing = TRUE)
+  hit <- names(ranks) %in% genes
+  inc <- abs(ranks) * hit
+  es  <- cumsum(inc / sum(inc) - (!hit) / sum(!hit))
+  data.frame(rank = seq_along(ranks) - 1, es = es, hit = hit, metric = unname(ranks))
+}
+
+plot_gsea <- function(curve, title, colour = "#D55E00", label = NULL,
+                      groups = c("KO", "Ctrl")) {
+  lo <- min(0, curve$es); hi <- max(0, curve$es); span <- hi - lo
+  tick <- c(lo - 0.22 * span, lo - 0.08 * span)   # hit ticks in a strip below the curve
+  hits <- curve[curve$hit, ]
+  ggplot(curve, aes(rank, es)) +
+    geom_hline(yintercept = 0, linewidth = 0.25, colour = "grey50") +
+    geom_line(colour = colour, linewidth = 0.5) +
+    geom_segment(data = hits, aes(x = rank, xend = rank, y = tick[1], yend = tick[2],
+                                  colour = metric > 0), linewidth = 0.15) +
+    scale_colour_manual(values = c(`TRUE` = "#D55E00", `FALSE` = "#0072B2"), guide = "none") +
+    annotate("text", x = 0, y = tick[1], label = groups[1], hjust = 0, vjust = 1.6, size = 1.8) +
+    annotate("text", x = max(curve$rank), y = tick[1], label = groups[2], hjust = 1, vjust = 1.6,
+             size = 1.8) +
+    { if (!is.null(label)) annotate("text", x = Inf, y = Inf, label = label, hjust = 1.05,
+                                    vjust = 1.4, size = 2) } +
+    scale_y_continuous(expand = expansion(mult = c(0.12, 0.05))) +
+    labs(title = title, x = "Rank in ordered gene list", y = "Running enrichment score") +
+    theme_nature() + theme(aspect.ratio = 0.8)
+}
+
+## Option A input: one plot per gene set, NES and FDR from the GSEA summary tables
+run_dir <- list.files("gsea_out", pattern = "^KO_vs_Ctrl\\.GseaPreranked", full.names = TRUE)[1]
+summ <- list.files(run_dir, pattern = "^gsea_report_for_na_(pos|neg).*\\.(tsv|xls)$",
+                   full.names = TRUE) |> lapply(read.delim) |> bind_rows()
+n_genes <- nrow(rnk)
+set_cols <- c(TEXPROG1 = "#EBA352", TEXPROG2 = "#EBA352", TEXINT = "#DC8D9C", TEXTERM = "#D95959")
+
+for (s in names(set_cols)) {
+  f   <- list.files(run_dir, pattern = paste0("^", s, "\\.(tsv|xls)$"), full.names = TRUE)
+  tab <- read.delim(f)
+  st  <- summ[summ$NAME == s, ]
+  p <- plot_gsea(es_from_gsea(tab, n_genes), s, set_cols[[s]],
+                 label = sprintf("NES = %.2f\nFDR = %.2g", st$NES, st$FDR.q.val))
+  save_fig(p, paste0("p_GSEA_KO_vs_Ctrl_", s, ".pdf"), w = 60, h = 55)
+}
+
+## Option B input
+# p <- plot_gsea(es_from_ranks(ranks, pathways[["TEXTERM"]]), "TEXTERM", "#D95959",
+#                label = with(fg[fg$pathway == "TEXTERM", ], sprintf("NES = %.2f\nFDR = %.2g", NES, padj)))
+```
+
+> Ticks are coloured by the sign of the ranking metric: orange = higher in the first group (left end of the list), blue = higher in the second. A set is enriched in the first group when the curve peaks early and most of its ticks fall in the orange part of the strip. Report NES and FDR, not the nominal *P* value. With many gene sets, FDR < 0.25 is the GSEA convention for exploratory work; use a stricter cut-off for claims.
+
+---
+
+## 9.5 Transposable-element expression (SQuIRE)
 
 ```bash
 conda create -n squire -c bioconda -c conda-forge -c r squire   # see the SQuIRE README for pinned versions
@@ -194,6 +314,8 @@ bsub -n 16 -M 65536 -o log_cnt.o -e log_cnt.e \
 - Dobin, A. *et al.* STAR: ultrafast universal RNA-seq aligner. *Bioinformatics* **29**, 15–21 (2013). — <https://github.com/alexdobin/STAR>
 - Liao, Y., Smyth, G. K. & Shi, W. featureCounts. *Bioinformatics* **30**, 923–930 (2014).
 - Love, M. I., Huber, W. & Anders, S. DESeq2. *Genome Biol.* **15**, 550 (2014).
+- Subramanian, A. *et al.* Gene set enrichment analysis: a knowledge-based approach for interpreting genome-wide expression profiles. *Proc. Natl Acad. Sci. USA* **102**, 15545–15550 (2005). — <https://www.gsea-msigdb.org/gsea/>
+- Korotkevich, G. *et al.* Fast gene set enrichment analysis. *bioRxiv* 060012 (2021). (fgsea) — <https://bioconductor.org/packages/fgsea>
 - Gu, Z., Eils, R. & Schlesner, M. Complex heatmaps reveal patterns and correlations in multidimensional genomic data. *Bioinformatics* **32**, 2847–2849 (2016). — book: <https://jokergoo.github.io/ComplexHeatmap-reference/book/>
 - Yang, W. R. *et al.* SQuIRE reveals locus-specific regulation of interspersed repeat expression. *Nucleic Acids Res.* **47**, e27 (2019). — <https://github.com/wyang17/SQuIRE>
 - Frankish, A. *et al.* GENCODE reference annotation for the human and mouse genomes. *Nucleic Acids Res.* **47**, D766–D773 (2019).
