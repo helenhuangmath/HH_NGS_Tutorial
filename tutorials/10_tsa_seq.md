@@ -1,4 +1,4 @@
-# 10 · SON TSA-seq: distance to nuclear speckles
+# Part 10 · SON TSA-seq: distance to nuclear speckles
 
 [← RNA-seq](09_rnaseq.md) · [Index](../README.md) · [Next: Hi-C →](11_hic.md)
 
@@ -8,7 +8,7 @@ The signal is broad (hundreds of kb), so it is not peak-called. It is summarised
 
 | Step | Tool | Output |
 |---|---|---|
-| Align + deduplicate | bowtie2 + Picard (chapter 3) | `*.map.dedup.bam` |
+| Align + deduplicate | bowtie2 + Picard (part 3) | `*.map.dedup.bam` |
 | Sliding-window normalisation | TSA-seq toolkit | `*.wig` → `*.bw` |
 | Integrate with expression | bigWigAverageOverBed + R | TSA score per gene, deciles |
 
@@ -31,6 +31,10 @@ while read s c; do
      && wigToBigWig TSA/${s}_TSA_${tag}.wig ${GSIZE} TSA/${s}_TSA_${tag}.bw"
 done
 ```
+
+![Fig. 10.1](figures/part10_tsa_signal.png)
+
+**[Fig. 10.1](figures/part10_tsa_signal.pdf) | SON TSA-seq signal.** SON TSA-seq enrichment (log₂ pull-down/IgG; 20-kb sliding window, 100-bp step) across 50 Mb. Positive (orange) regions are close to nuclear speckles; negative (blue) regions are distal. *Simulated data.*
 
 | Flag | Meaning |
 |---|---|
@@ -68,13 +72,9 @@ ggplot(d, aes(factor(Decile), log2(TPM + 1), fill = Decile)) +
   theme_nature()
 ```
 
----
+![Fig. 10.2](figures/part10_tsa_expression.png)
 
-## Example output
-
-![Fig. 9](figures/fig9_tsa_seq.png)
-
-**Fig. 9 | SON TSA-seq.** **a**, SON TSA-seq enrichment (log₂ pull-down/IgG; 20-kb sliding window, 100-bp step) across 50 Mb. Positive (orange) regions are close to nuclear speckles; negative (blue) regions are distal. **b**, Expression of genes grouped by SON TSA-seq decile at their TSS (±10 kb). Speckle-proximal genes are more highly expressed. Box, IQR; line, median; whiskers, 1.5× IQR. *Simulated data for illustration.*
+**[Fig. 10.2](figures/part10_tsa_expression.pdf) | Expression by speckle proximity.** Expression of genes grouped by SON TSA-seq decile at their TSS (±10 kb); speckle-proximal genes are more highly expressed. Box, IQR; line, median; whiskers, 1.5× IQR. *Simulated data.*
 
 ---
 

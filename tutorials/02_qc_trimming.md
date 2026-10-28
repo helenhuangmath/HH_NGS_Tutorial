@@ -1,4 +1,4 @@
-# 2 · Read QC and trimming
+# Part 2 · Read QC and trimming
 
 [← Data transfer](01_data_transfer.md) · [Index](../README.md) · [Next: CUT&RUN / ChIP alignment →](03_alignment_cutrun_chip.md)
 
@@ -89,7 +89,11 @@ java -jar picard.jar CollectInsertSizeMetrics \
   M=0.5
 ```
 
-Good CUT&RUN libraries for histone marks show a **nucleosomal ladder**: a mono-nucleosome peak near 150–200 bp and a smaller di-nucleosome peak near 300–350 bp (**Fig. 1b**). In IgG controls, an extra population below 120 bp usually comes from untethered MNase cutting.
+![Fig. 2.1](figures/part02_fragment_length.png)
+
+**[Fig. 2.1](figures/part02_fragment_length.pdf) | Fragment-length distribution.** Fragment lengths from paired-end alignments (Picard `CollectInsertSizeMetrics`). Histone libraries show mono- (~165 bp) and di-nucleosome (~330 bp) peaks; IgG shows an extra sub-nucleosomal population. *Simulated data.*
+
+Good CUT&RUN libraries for histone marks show a **nucleosomal ladder**: a mono-nucleosome peak near 150–200 bp and a smaller di-nucleosome peak near 300–350 bp (**Fig. 2.1**). In IgG controls, an extra population below 120 bp usually comes from untethered MNase cutting.
 
 ---
 
@@ -118,11 +122,7 @@ Here ~97 % of reads fit `1+-,1-+` → **reverse-stranded** (e.g. Illumina TruSeq
 
 ---
 
-## Example output
-
-![Fig. 1](figures/fig1_qc.png)
-
-**Fig. 1 | Library-level QC for a CUT&RUN experiment.** **a**, Read pairs per library split into unique deduplicated, PCR-duplicate and unaligned reads (from bowtie2 logs and Picard `MarkDuplicates` metrics). **b**, Fragment-length distribution from paired-end alignments; histone libraries show mono- and di-nucleosome peaks, and IgG shows extra sub-nucleosomal fragments. **c**, Fraction of reads in peaks (FRiP) per condition (bars, mean; dots, replicates); the dashed line marks the ENCODE guideline of 0.1. *Simulated data for illustration* (`scripts/make_example_figures.py`).
+## 2.5 Fraction of reads in peaks (FRiP)
 
 Compute FRiP for one sample:
 
@@ -131,6 +131,10 @@ total=$(samtools view -c -F 0x904 BAM/${id}.map.dedup.bam)
 inpk=$(samtools view -c -F 0x904 -L Peak/${id}.final.bed BAM/${id}.map.dedup.bam)
 echo -e "${id}\t$(echo "scale=4; ${inpk}/${total}" | bc)"
 ```
+
+![Fig. 2.2](figures/part02_frip.png)
+
+**[Fig. 2.2](figures/part02_frip.pdf) | Fraction of reads in peaks (FRiP).** FRiP per condition (bars, mean; dots, replicates). Dashed line, ENCODE guideline of 0.1; IgG controls fall well below it. *Simulated data.*
 
 ---
 

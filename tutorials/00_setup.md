@@ -1,4 +1,4 @@
-# 0 · Setup: HPC, project layout and software
+# Part 0 · Setup: HPC, project layout and software
 
 [← Index](../README.md) · [Next: Data transfer →](01_data_transfer.md)
 

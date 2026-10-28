@@ -1,4 +1,4 @@
-# 12 · Pooled CRISPR screens
+# Part 12 · Pooled CRISPR screens
 
 [← Hi-C](11_hic.md) · [Index](../README.md) · [Next: scRNA-seq →](13_scrnaseq.md)
 
@@ -49,7 +49,7 @@ Some sequencing cores return one count table per sample (`sgRNA  barcode  count`
 ```r
 ## screen_counts.R — merge guide counts, filter, write MAGeCK input, quick log2FC rank plots
 library(data.table); library(dplyr); library(tidyr); library(ggplot2); library(ggrepel)
-# theme_nature() and save_fig() are defined in chapter 5
+# theme_nature() and save_fig() are defined in part 5
 
 ## samples.txt: file  sample  line  time    (time = d0 or end; one of each per cell line)
 ## library.csv: sgRNA,gene                  (non-targeting guides: gene = NTC)
@@ -134,7 +134,7 @@ done < comparisons.txt
 
 ```r
 library(data.table); library(dplyr); library(tidyr); library(ggplot2); library(ggrepel)
-# theme_nature() is defined in chapter 5
+# theme_nature() is defined in part 5
 
 ## a. guide-count distribution per sample
 cnt <- fread("Screen.count_normalized.txt") |>
@@ -143,7 +143,13 @@ ggplot(cnt, aes(log2(Count + 1), colour = Sample)) +
   geom_density(linewidth = 0.4) +
   labs(x = expression(log[2]*"(normalized sgRNA count + 1)"), y = "Density", colour = NULL) +
   theme_nature()
+```
 
+![Fig. 12.1](figures/part12_count_distribution.png)
+
+**[Fig. 12.1](figures/part12_count_distribution.pdf) | sgRNA count distributions.** Distribution of normalized sgRNA counts per sample; selection in vivo widens the distribution compared with the plasmid and day-0 library. *Simulated data.*
+
+```r
 ## b. library QC: Gini index and zero-count guides
 qc <- fread("Screen.countsummary.txt")
 ggplot(qc, aes(GiniIndex, reorder(Label, GiniIndex))) +
@@ -152,7 +158,13 @@ ggplot(qc, aes(GiniIndex, reorder(Label, GiniIndex))) +
             hjust = -0.1, size = 1.8) +
   geom_vline(xintercept = 0.2, linetype = 2, linewidth = 0.2) +
   labs(x = "Gini index", y = NULL) + theme_nature()
+```
 
+![Fig. 12.2](figures/part12_library_qc.png)
+
+**[Fig. 12.2](figures/part12_library_qc.pdf) | Library QC.** Library evenness (Gini index; dashed line, 0.2) and percentage of zero-count sgRNAs per sample. *Simulated data.*
+
+```r
 ## c. replicate concordance (gene-level median log2FC per replicate)
 raw <- fread("Screen.count_normalized.txt")
 lfc <- raw |>
@@ -166,7 +178,13 @@ ggplot(lfc, aes(R1, R2)) + geom_point(size = 0.3, colour = "grey60") +
            label = sprintf("Pearson r = %.2f", r)) +
   labs(x = expression("Gene"~log[2]*"FC, replicate 1"), y = expression("Gene"~log[2]*"FC, replicate 2")) +
   theme_nature()
+```
 
+![Fig. 12.3](figures/part12_replicate_concordance.png)
+
+**[Fig. 12.3](figures/part12_replicate_concordance.pdf) | Replicate concordance.** Gene-level log₂ fold changes (tumour versus day 0) in two biological replicates; coloured points are significant hits. *Simulated data.*
+
+```r
 ## d. gene rank plot (MAGeCK RRA): enriched genes on the left, depleted on the right; tall panel
 gs <- fread("Tumour_vs_Day0.gene_summary.txt") |>
   transmute(Gene = id, LFC = `pos|lfc`, FDR = pmin(`pos|fdr`, `neg|fdr`)) |>
@@ -186,7 +204,13 @@ ggplot(gs, aes(Rank, LFC, colour = Hit)) +
   labs(x = "Gene rank", y = expression("Median sgRNA"~log[2]*"FC")) +
   theme_nature() + theme(legend.position = "none")
 ggsave("rank_plot.pdf", width = 45, height = 90, units = "mm")   # tall and narrow
+```
 
+![Fig. 12.4](figures/part12_gene_rank.png)
+
+**[Fig. 12.4](figures/part12_gene_rank.pdf) | Gene rank plot.** Genes ranked by median sgRNA log₂ fold change, from most enriched (left) to most depleted (right). Significantly enriched (orange) and depleted (blue) genes (MAGeCK RRA, FDR < 0.05) are labelled; grey band, |log₂FC| < 0.5. *Simulated data.*
+
+```r
 ## e. sgRNA-level plot for top hits vs non-targeting controls
 sg  <- fread("Tumour_vs_Day0.sgrna_summary.txt")
 ntc <- sg |> filter(Gene == "NonTargeting")
@@ -201,7 +225,13 @@ ggplot(d, aes(LFC, Gene)) +
   scale_colour_manual(values = c(`TRUE` = "#D55E00", `FALSE` = "#0072B2"), guide = "none") +
   labs(x = expression("sgRNA"~log[2]*"FC"), y = NULL) +
   theme_nature() + theme(axis.text.y = element_text(face = "italic"))
+```
 
+![Fig. 12.5](figures/part12_sgrna_hits.png)
+
+**[Fig. 12.5](figures/part12_sgrna_hits.pdf) | sgRNA effects for top hits.** Individual sgRNA log₂ fold changes for top hits (dots; bar, median) against the distribution of non-targeting controls (violin; grey band, central 95%). *Simulated data.*
+
+```r
 ## f. sgRNAs of example genes against the distribution of all sgRNAs
 ##    per gene: library histogram on top, that gene's guides in a separate strip below
 genes <- c("Pdcd1", "Dhx37", "Ptpn2", "NonTargeting", "Tbx21", "Myb")
@@ -223,6 +253,10 @@ ggplot() +
         strip.placement = "outside", strip.text.y.left = element_text(angle = 0, face = "italic"),
         panel.spacing = unit(0.5, "mm"))
 ```
+
+![Fig. 12.6](figures/part12_sgrna_distribution.png)
+
+**[Fig. 12.6](figures/part12_sgrna_distribution.pdf) | sgRNAs against the library distribution.** For each example gene, the log₂ fold changes of all sgRNAs in the library (grey histogram, top) and of the sgRNAs targeting that gene (coloured lines, strip below); four non-targeting sgRNAs (black) are shown for comparison. Layout after Chen et al., *Cell* 2021, Fig. 1d. *Simulated data.*
 
 > A real hit has **several concordant guides** clearly outside the non-targeting range (grey band). A single extreme guide is usually an off-target or bottleneck artefact. With strong bottlenecks (in vivo screens), use more replicates or animals and consider `mageck mle` with a replicate-aware design matrix.
 
@@ -254,14 +288,6 @@ crispro --scores Donovan2017_inputCRISPRO.csv \
         -o out_CRISPRO
 conda deactivate
 ```
-
----
-
-## Example output
-
-![Fig. 11](figures/fig11_crispr_screen.png)
-
-**Fig. 11 | Pooled in vivo CRISPR knockout screen.** **a**, Distribution of normalized sgRNA counts per sample; selection in vivo widens the distribution compared with the plasmid and day-0 library. **b**, Library evenness (Gini index; dashed line, 0.2) and percentage of zero-count sgRNAs per sample. **c**, Concordance of gene-level log₂ fold changes (tumour versus day 0) between biological replicates; coloured points are significant hits. **d**, Genes ranked by median sgRNA log₂ fold change, from most enriched (left) to most depleted (right); significantly enriched (orange) and depleted (blue) genes (MAGeCK RRA, FDR < 0.05) are labelled; grey band, |log₂FC| < 0.5. **e**, Individual sgRNA log₂ fold changes for top hits (dots; bar, median) against the distribution of non-targeting controls (violin; grey band, central 95%). **f**, For each example gene, the distribution of log₂ fold changes of all sgRNAs in the library (grey histogram, top) and the log₂ fold changes of the individual sgRNAs targeting that gene (coloured lines, strip below); four non-targeting sgRNAs (black) are shown for comparison. Layout after Chen et al., *Cell* 2021, Fig. 1d. *Simulated data for illustration.*
 
 ---
 

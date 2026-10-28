@@ -1,4 +1,4 @@
-# 11 · Hi-C and HiChIP: contact maps, TADs and loops
+# Part 11 · Hi-C and HiChIP: contact maps, TADs and loops
 
 [← TSA-seq](10_tsa_seq.md) · [Index](../README.md) · [Next: CRISPR screens →](12_crispr_screens.md)
 
@@ -51,13 +51,19 @@ done
 
 # QC: contact probability vs distance for several samples
 hicPlotDistVsCounts -m TN_40000.h5 TEX_40000.h5 --labels TN TEX -o PofS.pdf
+```
 
+![Fig. 11.1](figures/part11_distance_decay.png)
+
+**[Fig. 11.1](figures/part11_distance_decay.pdf) | Distance decay, P(s).** Contact probability as a function of genomic distance for two conditions; dashed line, slope −1. *Simulated data.*
+
+```bash
 # TADs (also writes an insulation-score track: *_tad_score.bm)
 hicFindTADs -m ${s}_40000.h5 --outPrefix ${s}_40k_TADs \
   --correctForMultipleTesting fdr --thresholdComparisons 0.05 -p 8
 
 # quick heatmap
-hicPlotMatrix -m ${s}_40000.h5 --region chr6:10000000-16000000 --log1p -o ${s}_chr6.png
+hicPlotMatrix -m ${s}_40000.h5 --region chr6:10000000-16000000 --log1p -o ${s}_chr6.pdf
 ```
 
 ### Map + TADs + other tracks (`hicPlotTADs`, pyGenomeTracks format)
@@ -104,6 +110,10 @@ height = 3
 hicPlotTADs --tracks tracks.ini --region chr6:10000000-16000000 -o TEX_TADs_chr6.pdf
 ```
 
+![Fig. 11.2](figures/part11_contact_map.png)
+
+**[Fig. 11.2](figures/part11_contact_map.pdf) | Contact map, TADs and insulation.** ICE-normalized contact map (40-kb bins) with TADs called by `hicFindTADs` outlined (top), and the insulation score along the same region (bottom); dashed lines mark TAD boundaries at insulation minima. *Simulated data.*
+
 ---
 
 ## 11.3 Alternatives
@@ -117,14 +127,6 @@ bash FitHiChIP_HiCPro.sh -C configfile_FitHiChIP
 ```
 
 FitHiChIP writes loops as BEDPE; view them as arcs in IGV/WashU or with a `[links]` section in `tracks.ini` (`file_type = links`).
-
----
-
-## Example output
-
-![Fig. 12](figures/fig12_hic.png)
-
-**Fig. 12 | Hi-C analysis.** **a**, ICE-normalized contact map (40-kb bins) with TADs called by `hicFindTADs` outlined (top), and the insulation score along the same region (bottom); dashed lines mark TAD boundaries at insulation minima. **b**, Contact probability as a function of genomic distance, P(s), for two conditions; dashed line, slope −1. *Simulated data for illustration.*
 
 ---
 

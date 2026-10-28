@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Generate the example figures used in the tutorials (tutorials/figures/).
+Generate the example figures used in the tutorials.
+
+Each lettered panel is written as its own figure (tutorials/figures/partNN_*.pdf,
+plus a .png that the tutorial pages show inline); the merged multi-panel version of each figure goes to
+tutorials/figures/overview/ for the README.
 
 All data are SIMULATED. They only show what each analysis step produces
 and how to lay the plots out in Nature style; they are not real results.
@@ -22,11 +26,12 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
+from matplotlib.transforms import Bbox
 from matplotlib.patches import Circle, Rectangle, FancyArrow
 from scipy import stats
 
 OUT = Path(__file__).resolve().parent.parent / "tutorials" / "figures"
-OUT.mkdir(parents=True, exist_ok=True)
+(OUT / "overview").mkdir(parents=True, exist_ok=True)
 
 rng = np.random.default_rng(2023)
 
@@ -72,15 +77,48 @@ mpl.rcParams.update({
 
 
 def label(ax, letter, x=-0.18, y=1.06):
-    ax.text(x, y, letter, transform=ax.transAxes, fontsize=8,
-            fontweight="bold", va="bottom", ha="left")
+    """Panel letter. `ax` starts the panel: it and every axes created after it,
+    up to the next labelled axes, are exported together by save()."""
+    t = ax.text(x, y, letter, transform=ax.transAxes, fontsize=8,
+                fontweight="bold", va="bottom", ha="left")
+    fig = ax.figure
+    fig._panels = getattr(fig, "_panels", []) + [(fig.axes.index(ax), letter, t)]
 
 
-def save(fig, name):
-    fig.savefig(OUT / f"{name}.png")
-    fig.savefig(OUT / f"{name}.pdf")
+def save(fig, name, panels=None):
+    """Single-panel figure: write `name`.pdf/.png. Multi-panel figure: write the
+    merged figure to overview/`name`.pdf and each panel, without its letter, to
+    panels[letter].pdf/.png."""
+    if panels is None:
+        fig.savefig(OUT / f"{name}.pdf")
+        fig.savefig(OUT / f"{name}.png")
+        plt.close(fig)
+        print("wrote", OUT / f"{name}.pdf")
+        return
+    fig.savefig(OUT / "overview" / f"{name}.pdf")
+    print("wrote", OUT / "overview" / f"{name}.pdf")
+    starts = sorted(fig._panels, key=lambda p: p[0])
+    assert sorted(panels) == sorted(p[1] for p in starts), name
+    for _, _, t in starts:
+        t.set_visible(False)
+    owner = {}
+    for k, (i0, letter, _) in enumerate(starts):
+        i1 = starts[k + 1][0] if k + 1 < len(starts) else len(fig.axes)
+        owner.update({a: letter for a in fig.axes[i0:i1]})
+    for a in fig.axes:            # colorbars made with ax= follow their parent axes
+        if hasattr(a, "_colorbar_info"):
+            owner[a] = owner[a._colorbar_info["parents"][0]]
+    r = fig.canvas.get_renderer()
+    for _, letter, _ in starts:
+        members = [a for a in fig.axes if owner.get(a) == letter]
+        for a in fig.axes:
+            a.set_visible(a in members)
+        bb = Bbox.union([a.get_tightbbox(r) for a in members])
+        bb = bb.transformed(fig.dpi_scale_trans.inverted()).padded(0.03)
+        fig.savefig(OUT / f"{panels[letter]}.pdf", bbox_inches=bb)
+        fig.savefig(OUT / f"{panels[letter]}.png", bbox_inches=bb)
+        print("  panel", letter, "->", OUT / f"{panels[letter]}.pdf")
     plt.close(fig)
-    print("wrote", OUT / f"{name}.png")
 
 
 def pstar(p):
@@ -156,13 +194,10 @@ SAMPLES = [f"{c}_Rep{r}" for c in COND for r in (1, 2)]
 
 
 # --------------------------------------------------------------------------
-# Fig. 1  Read QC: alignment summary, fragment sizes, FRiP
+# Part 3  Alignment summary
 # --------------------------------------------------------------------------
-def fig_qc():
-    fig, axes = plt.subplots(1, 3, figsize=(DOUBLE, 1.9),
-                             gridspec_kw=dict(wspace=0.45, width_ratios=[1.2, 1.1, 0.9]))
-
-    ax = axes[0]
+def fig_align():
+    fig, ax = plt.subplots(figsize=(DOUBLE * 0.4, 1.9))
     total = rng.uniform(14, 26, len(SAMPLES))
     uniq = total * rng.uniform(0.70, 0.85, len(SAMPLES))
     dup = total * rng.uniform(0.05, 0.15, len(SAMPLES))
@@ -176,9 +211,17 @@ def fig_qc():
     ax.set_xlabel("Read pairs (millions)")
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3,
               handlelength=0.8, columnspacing=0.8)
-    label(ax, "a", x=-0.45)
+    save(fig, "part03_alignment_summary")
 
-    ax = axes[1]
+
+# --------------------------------------------------------------------------
+# Part 2  Read QC: fragment sizes, FRiP
+# --------------------------------------------------------------------------
+def fig_qc():
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE * 0.62, 1.9),
+                             gridspec_kw=dict(wspace=0.45, width_ratios=[1.1, 0.9]))
+
+    ax = axes[0]
     x = np.arange(20, 800)
     def frag(mono, di, noise):
         d = (mono * stats.norm.pdf(x, 165, 25) + di * stats.norm.pdf(x, 330, 40)
@@ -194,9 +237,9 @@ def fig_qc():
     ax.legend(loc="upper right", handlelength=1.2)
     for pos, yv, txt in [(165, 1.06, "mono-"), (330, 0.37, "di-nucleosome")]:
         ax.text(pos + 12, yv, txt, ha="left", fontsize=5, color="#555555")
-    label(ax, "b")
+    label(ax, "a")
 
-    ax = axes[2]
+    ax = axes[1]
     frip = {c: rng.uniform(lo, hi, 2) for c, (lo, hi) in
             zip(COND, [(0.32, 0.4), (0.28, 0.36), (0.25, 0.33)])}
     frip["IgG"] = rng.uniform(0.01, 0.03, 2)
@@ -209,12 +252,12 @@ def fig_qc():
     ax.set_ylim(0, 0.5)
     ax.axhline(0.1, ls="--", lw=0.5, color="#555555")
     ax.text(3.4, 0.11, "0.1", fontsize=5, ha="right", color="#555555")
-    label(ax, "c", x=-0.3)
-    save(fig, "fig1_qc")
+    label(ax, "b", x=-0.3)
+    save(fig, "part02_qc", dict(a="part02_fragment_length", b="part02_frip"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 2  Peaks: counts, widths, replicate overlap
+# Part 4  Peaks: counts, widths, replicate overlap
 # --------------------------------------------------------------------------
 def fig_peaks():
     fig, axes = plt.subplots(1, 3, figsize=(DOUBLE, 1.8),
@@ -257,11 +300,12 @@ def fig_peaks():
     ax.set_xlim(0, 1); ax.set_ylim(0, 1)
     ax.axis("off")
     label(ax, "c", x=0.0)
-    save(fig, "fig2_peaks")
+    save(fig, "part04_peaks", dict(a="part04_peak_counts", b="part04_peak_widths",
+                                     c="part04_replicate_overlap"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 3  deepTools-style profile + heatmap
+# Part 8  deepTools-style profile + heatmap
 # --------------------------------------------------------------------------
 def fig_profile():
     n, nb = 1500, 80
@@ -287,6 +331,7 @@ def fig_profile():
             label(axp, "a", x=-0.55, y=1.1)
         else:
             axp.set_yticklabels([])
+    for j, c in enumerate(COND):
         axh = fig.add_subplot(gs[1, j])
         im = axh.imshow(mats[c], aspect="auto", cmap="Reds", vmin=0, vmax=vmax,
                         interpolation="nearest", extent=[-1, 1, n, 0])
@@ -303,11 +348,11 @@ def fig_profile():
     cb = fig.colorbar(im, cax=cax)
     cb.set_label("CPM")
     cb.outline.set_linewidth(0.5)
-    save(fig, "fig3_profile_heatmap")
+    save(fig, "part08_profile_heatmap", dict(a="part08_profile", b="part08_heatmap"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 4  Differential analysis: PCA, correlation, MA, volcano
+# Part 5  Differential analysis: PCA, correlation, box plot, MA, volcano
 # --------------------------------------------------------------------------
 def simulate_de(n=20000):
     base = rng.lognormal(4, 1.6, n)
@@ -322,9 +367,13 @@ def simulate_de(n=20000):
 
 
 def fig_diff():
-    fig, axes = plt.subplots(2, 2, figsize=(DOUBLE * 0.78, 3.7),
-                             gridspec_kw=dict(wspace=0.75, hspace=0.6))
-    axes = axes.ravel()
+    fig = plt.figure(figsize=(DOUBLE, 3.7))
+    gs = fig.add_gridspec(2, 1, hspace=0.6)
+    top = gs[0].subgridspec(1, 3, width_ratios=[1, 1, 0.75], wspace=0.75)
+    bot = gs[1].subgridspec(1, 2, wspace=0.3)
+    axes = [fig.add_subplot(top[0]), fig.add_subplot(top[1]),
+            fig.add_subplot(bot[0]), fig.add_subplot(bot[1])]
+    ax_box = fig.add_subplot(top[2])
     # a PCA
     ax = axes[0]
     centers = {"TN": (-14, 2), "TMEM": (3, -6), "TEX": (12, 5)}
@@ -364,16 +413,16 @@ def fig_diff():
     col = np.where(sig & (lfc > 0), UP, np.where(sig & (lfc < 0), DOWN, NS))
     order = np.argsort(sig)
 
-    # c MA
+    # d MA
     ax = axes[2]
     ax.scatter(np.log10(base[order]), lfc[order], c=col[order], s=0.6, lw=0, rasterized=True)
     ax.axhline(0, color="black", lw=0.4)
     ax.set_xlabel("log$_{10}$ mean normalized count")
     ax.set_ylabel("log$_2$ fold change (TEX/TN)")
     ax.set_ylim(-7, 7)
-    label(ax, "c", x=-0.25)
+    label(ax, "d", x=-0.25)
 
-    # d volcano
+    # e volcano
     ax = axes[3]
     ax.scatter(lfc[order], -np.log10(padj[order]), c=col[order], s=0.6, lw=0, rasterized=True)
     ax.axvline(np.log2(1.5), ls="--", color="#555555", lw=0.4)
@@ -393,16 +442,42 @@ def fig_diff():
     names = ["Tox", "Pdcd1", "Havcr2", "Entpd1", "Cd160", "Tcf7", "Sell", "Il7r", "Ccr7", "Lef1"]
     repel_labels(ax, lfc[idx], -np.log10(padj[idx]), names,
                  avoid_xy=np.c_[lfc[sig], -np.log10(padj[sig])], fixed=(t_up, t_dn))
-    label(ax, "d", x=-0.25)
-    save(fig, "fig4_differential")
+    label(ax, "e", x=-0.12)
+
+    # c box plot with Wilcoxon tests
+    ax = ax_box
+    vals = [rng.normal(m, 1.1, 1500) for m in (5.0, 5.6, 6.4)]
+    bp = ax.boxplot(vals, widths=0.6, patch_artist=True, showfliers=False,
+                    medianprops=dict(color="black", lw=0.8),
+                    whiskerprops=dict(lw=0.5), capprops=dict(lw=0.5),
+                    boxprops=dict(lw=0.5))
+    for patch, c in zip(bp["boxes"], COND):
+        patch.set_facecolor(COND[c])
+        patch.set_alpha(0.85)
+    ax.scatter([1, 2, 3], [v.mean() for v in vals], marker="^", s=8, color="white",
+               zorder=3, lw=0.3, ec="black")
+    ax.axhline(np.median(vals[0]), ls="--", lw=0.4, color="#555555")
+    ax.set_xticks([1, 2, 3], list(COND))
+    ax.set_ylabel("log$_2$(normalized count + 1)")
+    ytop = max(np.percentile(v, 99) for v in vals)
+    for k, (i, j) in enumerate([(0, 1), (1, 2), (0, 2)]):
+        p = stats.mannwhitneyu(vals[i], vals[j]).pvalue
+        h = ytop + 0.4 + k * 0.75
+        ax.plot([i + 1, i + 1, j + 1, j + 1], [h - 0.15, h, h, h - 0.15], lw=0.5, color="black")
+        ax.text((i + j) / 2 + 1, h + 0.02, pstar(p), ha="center", va="bottom", fontsize=5.5)
+    ax.set_ylim(top=ytop + 2.6)
+    label(ax, "c", x=-0.4)
+    save(fig, "part05_differential", dict(a="part05_pca", b="part05_correlation", c="part05_boxplot",
+                                            d="part05_ma", e="part05_volcano"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 5  Annotation + boxplot with Wilcoxon tests
+# Part 6  Annotation, distance to TSS, GO over-representation
 # --------------------------------------------------------------------------
 def fig_anno():
-    fig, axes = plt.subplots(1, 3, figsize=(DOUBLE, 1.9),
-                             gridspec_kw=dict(wspace=0.5, width_ratios=[1.35, 1, 0.9]))
+    fig = plt.figure(figsize=(DOUBLE, 2.1))
+    gs = fig.add_gridspec(1, 4, width_ratios=[1.35, 1, 1.05, 0.75], wspace=0.5)
+    axes = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[0, 3])]
     ax = axes[0]
     cats = ["Promoter", "5′ UTR", "3′ UTR", "Exon", "Intron", "Intergenic", "TTS"]
     cols = ["#0072B2", "#56B4E9", "#009E73", "#F0E442", "#E69F00", "#D55E00", "#CC79A7"]
@@ -435,37 +510,35 @@ def fig_anno():
             color=OI["red"], va="top")
     label(ax, "b")
 
+    # c over-representation (GO) dot plot
     ax = axes[2]
-    vals = [rng.normal(m, 1.1, 1500) for m in (5.0, 5.6, 6.4)]
-    bp = ax.boxplot(vals, widths=0.6, patch_artist=True, showfliers=False,
-                    medianprops=dict(color="black", lw=0.8),
-                    whiskerprops=dict(lw=0.5), capprops=dict(lw=0.5),
-                    boxprops=dict(lw=0.5))
-    for patch, c in zip(bp["boxes"], COND):
-        patch.set_facecolor(COND[c])
-        patch.set_alpha(0.85)
-    ax.scatter([1, 2, 3], [v.mean() for v in vals], marker="^", s=8, color="white",
-               zorder=3, lw=0.3, ec="black")
-    ax.axhline(np.median(vals[0]), ls="--", lw=0.4, color="#555555")
-    ax.set_xticks([1, 2, 3], list(COND))
-    ax.set_ylabel("log$_2$(normalized count + 1)")
-    ytop = max(np.percentile(v, 99) for v in vals)
-    for k, (i, j) in enumerate([(0, 1), (1, 2), (0, 2)]):
-        p = stats.mannwhitneyu(vals[i], vals[j]).pvalue
-        h = ytop + 0.4 + k * 0.75
-        ax.plot([i + 1, i + 1, j + 1, j + 1], [h - 0.15, h, h, h - 0.15], lw=0.5, color="black")
-        ax.text((i + j) / 2 + 1, h + 0.02, pstar(p), ha="center", va="bottom", fontsize=5.5)
-    ax.set_ylim(top=ytop + 2.6)
-    label(ax, "c", x=-0.4)
-    save(fig, "fig5_annotation_boxplot")
+    terms = ["T cell activation", "Regulation of cytokine production",
+             "Response to interferon-γ", "Leukocyte differentiation",
+             "PD-1 signalling", "Positive regulation of apoptosis",
+             "Antigen processing via MHC I", "Cell–cell adhesion"]
+    gr = np.sort(rng.uniform(0.04, 0.16, len(terms)))[::-1]
+    cnt = (gr * 120).astype(int)
+    padj = np.sort(10 ** -rng.uniform(2, 9, len(terms)))
+    yy = np.arange(len(terms))
+    sc = ax.scatter(gr, yy, s=cnt * 1.6, c=-np.log10(padj), cmap="magma_r", lw=0.3, ec="black")
+    ax.set_yticks(yy, terms)
+    ax.invert_yaxis()
+    ax.set_xlabel("Gene ratio")
+    ax.set_xlim(0.02, 0.18)
+    cb = fig.colorbar(sc, ax=ax, fraction=0.07, pad=0.04, aspect=14)
+    cb.set_label("−log$_{10}$ adj. P")
+    cb.outline.set_linewidth(0.5)
+    label(ax, "c", x=-1.3, y=1.02)
+    save(fig, "part06_annotation", dict(a="part06_annotation", b="part06_tss_distance",
+                                          c="part06_go_enrichment"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 6  Motifs & pathway enrichment
+# Part 7  Known-motif enrichment
 # --------------------------------------------------------------------------
 def fig_motif():
-    fig, axes = plt.subplots(1, 3, figsize=(DOUBLE, 2.4),
-                             gridspec_kw=dict(wspace=1.25, width_ratios=[0.8, 1.2, 1.1]))
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE * 0.62, 2.4),
+                             gridspec_kw=dict(wspace=1.25, width_ratios=[0.8, 1.2]))
     ax = axes[0]
     motifs = ["BATF", "AP-1", "JunB", "NFAT", "IRF4", "RUNX", "TCF7", "LEF1", "ETS1", "KLF2"]
     comps = ["TEX up", "TEX down"]
@@ -518,29 +591,11 @@ def fig_motif():
             va="bottom", color=DOWN, fontsize=5)
     label(ax, "b", x=-0.25, y=1.02)
 
-    ax = axes[2]
-    terms = ["T cell activation", "Regulation of cytokine production",
-             "Response to interferon-γ", "Leukocyte differentiation",
-             "PD-1 signalling", "Positive regulation of apoptosis",
-             "Antigen processing via MHC I", "Cell–cell adhesion"]
-    gr = np.sort(rng.uniform(0.04, 0.16, len(terms)))[::-1]
-    cnt = (gr * 120).astype(int)
-    padj = np.sort(10 ** -rng.uniform(2, 9, len(terms)))
-    yy = np.arange(len(terms))
-    sc = ax.scatter(gr, yy, s=cnt * 1.6, c=-np.log10(padj), cmap="magma_r", lw=0.3, ec="black")
-    ax.set_yticks(yy, terms)
-    ax.invert_yaxis()
-    ax.set_xlabel("Gene ratio")
-    ax.set_xlim(0.02, 0.18)
-    cb = fig.colorbar(sc, ax=ax, fraction=0.07, pad=0.04, aspect=14)
-    cb.set_label("−log$_{10}$ adj. P")
-    cb.outline.set_linewidth(0.5)
-    label(ax, "c", x=-1.3, y=1.02)
-    save(fig, "fig6_motif_enrichment")
+    save(fig, "part07_motif_enrichment", dict(a="part07_known_motifs", b="part07_signed_enrichment"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 7  RNA-seq k-means heatmap (ComplexHeatmap layout)
+# Part 9  RNA-seq k-means heatmap (ComplexHeatmap layout)
 # --------------------------------------------------------------------------
 def fig_rna_heatmap():
     k = 7
@@ -608,11 +663,11 @@ def fig_rna_heatmap():
         lax.bar(0, 0, color=c, label=t)
     lax.legend(title="DE call", loc="center left", handlelength=0.8, title_fontsize=5.5)
     fig.text(0.5, 0.965, f"DEGs (FDR < 0.05, FC > 1.5; n = {len(Z):,})", ha="center", fontsize=7)
-    save(fig, "fig7_rna_kmeans_heatmap")
+    save(fig, "part09_kmeans_heatmap")
 
 
 # --------------------------------------------------------------------------
-# Fig. 8  Genome-browser style tracks (Gviz layout)
+# Part 8  Genome-browser style tracks (Gviz layout)
 # --------------------------------------------------------------------------
 def fig_tracks():
     start, end = 1_000_000, 1_060_000
@@ -656,11 +711,11 @@ def fig_tracks():
     ax.plot([end - 10_000, end], [0.95, 0.95], color="black", lw=0.6)
     ax.text(end - 5_000, 1.0, "10 kb", ha="center", va="bottom", fontsize=5)
     axes[0].set_title("chr1:1,000,000–1,060,000", fontsize=6, loc="left", pad=2)
-    save(fig, "fig8_genome_tracks")
+    save(fig, "part08_genome_tracks")
 
 
 # --------------------------------------------------------------------------
-# Fig. 9  SON TSA-seq
+# Part 10  SON TSA-seq
 # --------------------------------------------------------------------------
 def fig_tsa():
     fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 1.8),
@@ -690,11 +745,11 @@ def fig_tsa():
     ax.set_xlabel("SON TSA-seq decile")
     ax.set_ylabel("log$_2$(TPM + 1)")
     label(ax, "b", x=-0.35)
-    save(fig, "fig9_tsa_seq")
+    save(fig, "part10_tsa_seq", dict(a="part10_tsa_signal", b="part10_tsa_expression"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 12  Hi-C: contact map, insulation, distance decay
+# Part 11  Hi-C: contact map, insulation, distance decay
 # --------------------------------------------------------------------------
 def fig_hic():
     fig = plt.figure(figsize=(DOUBLE, 2.5))
@@ -745,7 +800,7 @@ def fig_hic():
     ax.set_ylabel("Contact probability P(s)")
     ax.legend(loc="upper right")
     label(ax, "b", x=-0.28)
-    save(fig, "fig12_hic")
+    save(fig, "part11_hic", dict(a="part11_contact_map", b="part11_distance_decay"))
 
 
 # --------------------------------------------------------------------------
@@ -774,7 +829,7 @@ def umap_ax(ax, xy, colors, title=None, s=1.2):
 
 
 # --------------------------------------------------------------------------
-# Fig. 13  scRNA-seq
+# Part 13  scRNA-seq
 # --------------------------------------------------------------------------
 def fig_scrna():
     ct, xy = sim_cells()
@@ -875,11 +930,12 @@ def fig_scrna():
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, handlelength=0.8,
               columnspacing=0.6)
     label(ax, "e", x=-0.3, y=1.02)
-    save(fig, "fig13_scrnaseq")
+    save(fig, "part13_scrnaseq", dict(a="part13_qc", b="part13_umap", c="part13_feature_plots",
+                                        d="part13_marker_dotplot", e="part13_composition"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 14  scATAC-seq: QC, clusters, chromVAR, coverage tracks
+# Part 14  scATAC-seq: QC, clusters, chromVAR, coverage tracks
 # --------------------------------------------------------------------------
 def fig_scatac():
     ct, xy = sim_cells(3500)
@@ -998,11 +1054,13 @@ def fig_scatac():
     ax.text(17, 0.0, "Tcf7", style="italic", ha="center", va="top", fontsize=5.5)
     ax.plot([34, 39], [0.55, 0.55], color="black", lw=0.6)
     ax.text(36.5, 0.65, "5 kb", ha="center", va="bottom", fontsize=5)
-    save(fig, "fig14_scatac")
+    save(fig, "part14_scatac", dict(a="part14_fragment_length", b="part14_tss_enrichment",
+                                     c="part14_umap", d="part14_chromvar_heatmap",
+                                     e="part14_chromvar_umap", f="part14_coverage"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 15  Spatial transcriptomics integration
+# Part 15  Spatial transcriptomics integration
 # --------------------------------------------------------------------------
 def fig_spatial():
     ncl, per = 6, 350
@@ -1084,11 +1142,13 @@ def fig_spatial():
     cb = fig.colorbar(sc_, ax=ax, fraction=0.04, pad=0.02); cb.set_label("log-normalized")
     cb.outline.set_linewidth(0.5)
     label(ax, "f", x=0.0)
-    save(fig, "fig15_spatial")
+    save(fig, "part15_spatial", dict(a="part15_umap_before", b="part15_umap_after",
+                                      c="part15_composition", d="part15_tissue_wt",
+                                      e="part15_tissue_ko", f="part15_gene_on_tissue"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 10  Motif analysis results: logos, centrality, footprints
+# Part 7  Motif analysis results: logos, centrality, footprints
 # --------------------------------------------------------------------------
 from matplotlib.textpath import TextPath
 from matplotlib.patches import PathPatch
@@ -1243,11 +1303,13 @@ def fig_motif_results():
     ax.set_xlabel("TF activity score (TEX − TMEM)")
     ax.set_ylabel("−log$_{10}$ P")
     label(ax, "e", x=-0.3)
-    save(fig, "fig10_motif_results")
+    save(fig, "part07_motif_results", dict(a="part07_denovo_logos", b="part07_motif_centrality",
+                                             c="part07_motif_frequency", d="part07_footprint",
+                                             e="part07_tf_activity"))
 
 
 # --------------------------------------------------------------------------
-# Fig. 11  Pooled CRISPR screen: guide distributions, QC, ranks, sgRNA level
+# Part 12  Pooled CRISPR screen: guide distributions, QC, ranks, sgRNA level
 # --------------------------------------------------------------------------
 def fig_crispr():
     n_genes, g_per = 2000, 4
@@ -1409,22 +1471,25 @@ def fig_crispr():
             ax_r.set_xlabel("sgRNA log$_2$FC (tumour / day 0)")
         if k == 0:
             label(ax_h, "f", x=-0.42, y=1.15)
-    save(fig, "fig11_crispr_screen")
+    save(fig, "part12_crispr_screen", dict(a="part12_count_distribution", b="part12_library_qc",
+                                             c="part12_replicate_concordance", d="part12_gene_rank",
+                                             e="part12_sgrna_hits", f="part12_sgrna_distribution"))
 
 
 if __name__ == "__main__":
     fig_qc()
+    fig_align()
     fig_peaks()
-    fig_profile()
     fig_diff()
     fig_anno()
     fig_motif()
-    fig_rna_heatmap()
-    fig_tracks()
-    fig_tsa()
     fig_motif_results()
-    fig_crispr()
+    fig_profile()
+    fig_tracks()
+    fig_rna_heatmap()
+    fig_tsa()
     fig_hic()
+    fig_crispr()
     fig_scrna()
     fig_scatac()
     fig_spatial()

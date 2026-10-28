@@ -1,13 +1,13 @@
-# 4 · Peak calling and consensus peak sets
+# Part 4 · Peak calling and consensus peak sets
 
 [← Alignment](03_alignment_cutrun_chip.md) · [Index](../README.md) · [Next: Differential analysis →](05_differential_analysis.md)
 
-This chapter follows a four-step peak-calling workflow:
+This part follows a four-step peak-calling workflow:
 
 1. Call **broad peaks** per replicate with MACS2.
 2. Call permissive peaks on **IgG** and treat them as background artefacts.
 3. Filter, then remove blacklist and IgG regions.
-4. Build a **consensus** set per condition (overlap of ≥ 2 replicates) and a **union** set across conditions for counting (chapter 5).
+4. Build a **consensus** set per condition (overlap of ≥ 2 replicates) and a **union** set across conditions for counting (part 5).
 
 ---
 
@@ -42,6 +42,14 @@ grep -v '^track' Peak/${prefix}_peaks.broadPeak \
   | awk 'BEGIN{OFS="\t"} {print $1,$2,$3,"'${Sample_ID}'_"NR,$5,$3-$2}' \
   > Peak/${prefix}.final.bed
 ```
+
+![Fig. 4.1](figures/part04_peak_counts.png)
+
+**[Fig. 4.1](figures/part04_peak_counts.pdf) | Peaks per mark and condition.** Number of MACS2 broad peaks per mark and condition after filtering (fold enrichment > 1.2, *P* < 0.05) and blacklist removal (`wc -l Peak/*.final.bed`). *Simulated data.*
+
+![Fig. 4.2](figures/part04_peak_widths.png)
+
+**[Fig. 4.2](figures/part04_peak_widths.pdf) | Peak-width distributions.** Widths of the filtered peaks (column 6 of `*.final.bed`; log scale). H3K4me3 peaks are narrow and promoter-sized, H3K27ac peaks are intermediate, and H3K27me3 forms broad domains spanning tens of kilobases. *Simulated data.*
 
 | Option | Meaning |
 |---|---|
@@ -134,7 +142,7 @@ bedtools multiinter -i ${reps} \
   > peak_Consensus_${cond}.bed
 ```
 
-**Union across conditions** (count matrix input for chapter 5; 6-column BED with unique IDs)
+**Union across conditions** (count matrix input for part 5; 6-column BED with unique IDs)
 
 ```bash
 cat peak_Consensus_*_H3K27ac.bed | sort -k1,1 -k2,2n | bedtools merge -i - \
@@ -174,6 +182,10 @@ makeVennDiagram(ol, fill = c("#0072B2", "#D55E00", "#009E73"), alpha = 0.4,
 dev.off()
 ```
 
+![Fig. 4.3](figures/part04_replicate_overlap.png)
+
+**[Fig. 4.3](figures/part04_replicate_overlap.pdf) | Overlap between replicates.** Peaks shared by two H3K27ac replicates; the consensus set keeps peaks found in at least two replicates. *Simulated data.*
+
 > `makeGRangesFromDataFrame()` (from **GenomicRanges**) converts BED-like tables to `GRanges`; set `ext` to count nearby but non-overlapping peaks as shared.
 
 ---
@@ -202,14 +214,6 @@ rand    <- get.random.regions(n = 1000, species = "human", build = "hg19",
                               size.mean = 10, size.sd = 0.25)   # see ?get.random.regions
 bedr.plot.region(input = list(a = a, b = ab.int), feature = "interval")
 ```
-
----
-
-## Example output
-
-![Fig. 2](figures/fig2_peaks.png)
-
-**Fig. 2 | Peak-calling summary.** **a**, Number of MACS2 broad peaks per mark and condition after filtering (fold enrichment > 1.2, *P* < 0.05) and blacklist/IgG removal. **b**, Peak-width distributions: H3K4me3 peaks are narrow and promoter-sized, H3K27ac peaks are intermediate, and H3K27me3 forms broad domains spanning tens of kilobases. **c**, Overlap between replicates; the consensus set keeps peaks found in at least two replicates. *Simulated data for illustration.*
 
 ---
 

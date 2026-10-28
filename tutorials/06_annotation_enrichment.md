@@ -1,4 +1,4 @@
-# 6 · Peak annotation and functional enrichment
+# Part 6 · Peak annotation and functional enrichment
 
 [← Differential analysis](05_differential_analysis.md) · [Index](../README.md) · [Next: Motif analysis →](07_motif_analysis.md)
 
@@ -14,7 +14,7 @@ chr1  1000512  1002240  peak1  .  +
 
 ```bash
 export PATH=$PATH:/path/to/tools/homer/bin      # or: module load homer-v4.6
-species=hg19                                       # or a custom genome, e.g. mm10_GencodeV24 (chapter 0)
+species=hg19                                       # or a custom genome, e.g. mm10_GencodeV24 (part 0)
 p=peak_Union_H3K27ac
 
 annotatePeaks.pl ${p}.bed6.bed ${species} 1> ${p}.homer_anno.txt 2> log_homer_${p}.txt
@@ -71,7 +71,25 @@ ggplot(df, aes(pct, Set, fill = Anno)) + geom_col(width = 0.65, colour = "white"
   scale_fill_manual(values = anno_cols) + labs(x = "Peaks (%)", y = NULL, fill = NULL) + theme_nature()
 ```
 
+![Fig. 6.1](figures/part06_annotation.png)
+
+**[Fig. 6.1](figures/part06_annotation.pdf) | Genomic annotation of peaks.** HOMER annotation of all union peaks and of regions gained (Up) or lost (Down) in TEX; promoter = −2 kb to +0.5 kb from the TSS. *Simulated data.*
+
 (Stacked bars make it easier than pie charts to compare peak sets side by side.)
+
+### Distance to the nearest TSS
+
+```r
+ggplot(res, aes(Distance.to.TSS / 1000)) +
+  annotate("rect", xmin = -2, xmax = 0.5, ymin = -Inf, ymax = Inf, fill = "#D55E00", alpha = 0.2) +
+  geom_histogram(binwidth = 2.5, fill = "#0072B2") +
+  coord_cartesian(xlim = c(-100, 100)) +
+  labs(x = "Distance to TSS (kb)", y = "Peaks") + theme_nature()
+```
+
+![Fig. 6.2](figures/part06_tss_distance.png)
+
+**[Fig. 6.2](figures/part06_tss_distance.pdf) | Distance to the nearest TSS.** Distance from each peak to the nearest TSS (HOMER `Distance to TSS`); shaded band, promoter window. *Simulated data.*
 
 ---
 
@@ -198,6 +216,10 @@ genes <- c("Tox", "Klrg1", "Entpd1", "Pdcd1", "Clnk", "Gzma", "Zeb2", "Cx3cr1",
 er <- run_enricher(genes, C5, "MsigDB_C5_TestGeneSet")
 ```
 
+![Fig. 6.3](figures/part06_go_enrichment.png)
+
+**[Fig. 6.3](figures/part06_go_enrichment.pdf) | GO over-representation.** clusterProfiler `enricher` (MSigDB C5) on genes near TEX-gained regions. Dot size, genes in the term; colour, −log₁₀ BH-adjusted *P*; x axis, gene ratio. *Simulated data.*
+
 > `enricher()` returns `NULL` or an empty result when nothing passes the cut-offs, which the function checks for. Supply `universe =` (all genes with a peak or detected in RNA-seq) to avoid inflated *P* values.
 
 ### Enrichr web API (`enrichR` package)
@@ -238,18 +260,6 @@ dev.off()
 ```
 
 Other options: `VennDiagram::venn.diagram()` (classic), `ggVennDiagram()` (fill by count) and `ggvenn()` (quick). For more than four sets, use an UpSet plot (`ComplexHeatmap::UpSet`).
-
----
-
-## Example output
-
-![Fig. 5](figures/fig5_annotation_boxplot.png)
-
-**Fig. 5 | Genomic annotation of H3K27ac regions.** **a**, HOMER annotation of all union peaks and of regions gained (Up) or lost (Down) in TEX; promoter = −2 kb to +0.5 kb from the TSS. **b**, Distance from each peak to the nearest TSS; the shaded band marks the promoter window. **c**, see chapter 5. *Simulated data.*
-
-![Fig. 6c](figures/fig6_motif_enrichment.png)
-
-**Fig. 6 | (panel c)** Over-representation analysis (clusterProfiler `enricher`, MSigDB C5) of genes near TEX-gained regions. Dot size = genes in the term; colour = −log₁₀ BH-adjusted *P*; x-axis = gene ratio. Panels a and b are described in chapter 7. *Simulated data.*
 
 ---
 
