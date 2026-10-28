@@ -1,4 +1,4 @@
-# 13 · Single-cell RNA-seq (Seurat / Scanpy)
+# Part 13 · Single-cell RNA-seq (Seurat / Scanpy)
 
 [← CRISPR screens](12_crispr_screens.md) · [Index](../README.md) · [Next: scATAC-seq →](14_scatacseq.md)
 
@@ -9,7 +9,7 @@ Cell Ranger count ─► filtered_feature_bc_matrix.h5
                  └─► markers ─► annotation ─► composition ─► pseudobulk DE ─► regulons (SCENIC)
 ```
 
-The examples use Seurat (R). Each step has a Scanpy equivalent (see the [spatial chapter](15_spatial.md) and the *single-cell best practices* book in the references).
+The examples use Seurat (R). Each step has a Scanpy equivalent (see the [spatial part](15_spatial.md) and the *single-cell best practices* book in the references).
 
 ---
 
@@ -45,7 +45,11 @@ VlnPlot(seu, c("nFeature_RNA", "nCount_RNA", "percent.mt"), group.by = "sample",
 seu <- subset(seu, nFeature_RNA > 200 & nFeature_RNA < 6000 & percent.mt < 10)
 ```
 
-Thresholds depend on tissue and chemistry: look at the distributions (Fig. 13a) and cut obvious outliers rather than copying numbers.
+![Fig. 13.1](figures/part13_qc.png)
+
+**[Fig. 13.1](figures/part13_qc.pdf) | Per-cell QC.** Genes detected, UMIs and percentage of mitochondrial reads per cell. Dashed lines, filtering thresholds (200–6,000 genes; < 10% mitochondrial). *Simulated data.*
+
+Thresholds depend on tissue and chemistry: look at the distributions (Fig. 13.1) and cut obvious outliers rather than copying numbers.
 
 **Doublets** (per sample, before merging is best):
 
@@ -108,12 +112,32 @@ ct_cols <- c(Naive = "#8C8C8C", Tcm = "#56B4E9", Tem = "#0072B2",
 
 p_umap <- DimPlot(seu, cols = ct_cols, label = TRUE, label.size = 2.2, pt.size = 0.1) +
           NoLegend() + theme_nature()
+```
+
+![Fig. 13.2](figures/part13_umap.png)
+
+**[Fig. 13.2](figures/part13_umap.pdf) | UMAP of annotated clusters.** UMAP of Harmony-integrated cells coloured by annotated cluster. *Simulated data.*
+
+```r
 p_feat <- FeaturePlot(seu, c("Tcf7", "Havcr2"), order = TRUE, pt.size = 0.1,
                       cols = c("grey90", "#3F007D"), ncol = 2) & theme_nature()
+```
+
+![Fig. 13.3](figures/part13_feature_plots.png)
+
+**[Fig. 13.3](figures/part13_feature_plots.pdf) | Marker expression on the UMAP.** Expression of *Tcf7* (progenitor/memory) and *Havcr2* (terminal exhaustion). *Simulated data.*
+
+```r
 p_dot  <- DotPlot(seu, features = c("Sell", "Ccr7", "Il7r", "Gzmb", "Cx3cr1", "Tcf7", "Slamf6",
                                     "Havcr2", "Tox", "Entpd1", "Mki67", "Top2a"),
                   cols = "RdBu", dot.scale = 3) + RotatedAxis() + theme_nature()
+```
 
+![Fig. 13.4](figures/part13_marker_dotplot.png)
+
+**[Fig. 13.4](figures/part13_marker_dotplot.pdf) | Marker dot plot.** Dot size, fraction of cells expressing; colour, scaled mean expression. *Simulated data.*
+
+```r
 ## composition per sample
 comp <- seu@meta.data |> count(sample, celltype) |> group_by(sample) |> mutate(pct = 100 * n / sum(n))
 p_comp <- ggplot(comp, aes(pct, sample, fill = celltype)) + geom_col(width = 0.65) +
@@ -121,6 +145,10 @@ p_comp <- ggplot(comp, aes(pct, sample, fill = celltype)) + geom_col(width = 0.6
 
 ggsave("fig_scRNA.pdf", (p_umap | p_feat) / (p_dot | p_comp), width = 183, height = 150, units = "mm")
 ```
+
+![Fig. 13.5](figures/part13_composition.png)
+
+**[Fig. 13.5](figures/part13_composition.pdf) | Cell-type composition.** Cell-type composition per time point. *Simulated data.*
 
 > Composition changes need a statistical test across **biological replicates** (e.g. `propeller` in the *speckle* package, or scCODA), not a χ² test on cell counts.
 
@@ -140,7 +168,7 @@ dds <- DESeqDataSetFromMatrix(GetAssayData(pb_tex, layer = "counts"), cd, ~ cond
 res <- results(dds, contrast = c("condition", "KO", "WT"))
 ```
 
-Volcano and heatmap code from chapters 5 and 9 apply unchanged.
+Volcano and heatmap code from parts 5 and 9 apply unchanged.
 
 ---
 
@@ -156,14 +184,6 @@ scenicOptions <- initializeScenic(org = "mgi", dbDir = "cisTarget_databases", nC
 ```
 
 For more than a few thousand cells, use **pySCENIC** (`pyscenic grn` → `ctx` → `aucell`); it is much faster than R GENIE3. Regulon AUC scores can be added to the Seurat object and plotted with `FeaturePlot` / `DotPlot` like genes.
-
----
-
-## Example output
-
-![Fig. 13](figures/fig13_scrnaseq.png)
-
-**Fig. 13 | scRNA-seq of antigen-specific CD8⁺ T cells.** **a**, Per-cell QC: genes detected, UMIs and percentage of mitochondrial reads. Dashed lines, filtering thresholds (200–6,000 genes; < 10% mitochondrial). **b**, UMAP of Harmony-integrated cells coloured by annotated cluster. **c**, Expression of *Tcf7* (progenitor/memory) and *Havcr2* (terminal exhaustion). **d**, Marker dot plot: dot size, fraction of cells expressing; colour, scaled mean expression. **e**, Cell-type composition per time point. *Simulated data for illustration.*
 
 ---
 

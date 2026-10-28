@@ -1,4 +1,4 @@
-# 3 · CUT&RUN and ChIP-seq alignment → BAM → bigWig
+# Part 3 · CUT&RUN and ChIP-seq alignment → BAM → bigWig
 
 [← QC & trimming](02_qc_trimming.md) · [Index](../README.md) · [Next: Peak calling →](04_peak_calling.md)
 
@@ -12,7 +12,7 @@ sample.bam ──► samtools view -f 2 (proper pairs) ──► sort ──► 
    │                                                sample.map.dedup.bam (+ .bai)
    ├─► samtools flagstat                                     │
    │                                                         ├─► bamCoverage (CPM, blacklist) ──► sample.cpm.bw
-   │                                                         └─► MACS2 (chapter 4)
+   │                                                         └─► MACS2 (part 4)
 ```
 
 ---
@@ -85,7 +85,7 @@ bamCoverage -b BAM/${Sample_ID}.map.dedup.bam -o Wig/${Sample_ID}.cpm.bw \
 # rm BAM/${Sample_ID}.bam BAM/${Sample_ID}.map.sort.bam
 ```
 
-> If you trimmed reads (chapter 2), point `fq1`/`fq2` at the `*_trim_1P` / `*_trim_2P` files.
+> If you trimmed reads (part 2), point `fq1`/`fq2` at the `*_trim_1P` / `*_trim_2P` files.
 
 ### Example output
 
@@ -155,6 +155,10 @@ for s in $(awk 'NR>1{print $1}' sample_list_all.txt); do
 done
 column -t QC/align_summary.tsv
 ```
+
+![Fig. 3.1](figures/part03_alignment_summary.png)
+
+**[Fig. 3.1](figures/part03_alignment_summary.pdf) | Alignment summary per library.** Read pairs per library split into unique deduplicated, PCR-duplicate and unaligned pairs, from the bowtie2 logs and Picard `MarkDuplicates` metrics collected in `QC/align_summary.tsv`. *Simulated data.*
 
 ---
 

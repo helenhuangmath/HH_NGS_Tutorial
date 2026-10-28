@@ -1,4 +1,4 @@
-# 14 · Single-cell ATAC-seq (Signac / ArchR): QC, clustering, chromVAR and tracks
+# Part 14 · Single-cell ATAC-seq (Signac / ArchR): QC, clustering, chromVAR and tracks
 
 [← scRNA-seq](13_scrnaseq.md) · [Index](../README.md) · [Next: Spatial →](15_spatial.md)
 
@@ -52,9 +52,22 @@ atac$blacklist_ratio    <- FractionCountsInRegion(atac, assay = "peaks", regions
 VlnPlot(atac, c("nCount_peaks", "TSS.enrichment", "nucleosome_signal",
                 "pct_reads_in_peaks", "blacklist_ratio"), pt.size = 0, ncol = 5)
 DensityScatter(atac, x = "nCount_peaks", y = "TSS.enrichment", log_x = TRUE, quantiles = TRUE)
+```
 
+![Fig. 14.1](figures/part14_tss_enrichment.png)
+
+**[Fig. 14.1](figures/part14_tss_enrichment.pdf) | TSS enrichment versus fragments.** TSS enrichment against unique fragments per barcode (colour, point density); dashed lines, QC thresholds (TSS enrichment > 4, > 1,000 fragments). *Simulated data.*
+
+```r
 atac$nucleosome_group <- ifelse(atac$nucleosome_signal > 4, "NS > 4", "NS < 4")
 FragmentHistogram(atac, group.by = "nucleosome_group")      # fragment-length distribution
+```
+
+![Fig. 14.2](figures/part14_fragment_length.png)
+
+**[Fig. 14.2](figures/part14_fragment_length.pdf) | Fragment-length distribution.** Nucleosome-free (NFR) and mono-, di- and tri-nucleosome fragments. *Simulated data.*
+
+```r
 TSSPlot(atac, group.by = NULL) + NoLegend()                 # aggregate TSS profile
 
 atac <- subset(atac, nCount_peaks > 1000 & nCount_peaks < 50000 & pct_reads_in_peaks > 15 &
@@ -93,7 +106,7 @@ atac[["RNA"]] <- CreateAssayObject(GeneActivity(atac))     # gene body + 2 kb up
 atac <- NormalizeData(atac, assay = "RNA", normalization.method = "LogNormalize",
                       scale.factor = median(atac$nCount_RNA))
 
-rna <- readRDS("seu_scRNA_annotated.rds")                   # from chapter 13
+rna <- readRDS("seu_scRNA_annotated.rds")                   # from part 13
 DefaultAssay(atac) <- "RNA"
 anchors <- FindTransferAnchors(reference = rna, query = atac, reduction = "cca")
 pred <- TransferData(anchors, refdata = rna$celltype, weight.reduction = atac[["lsi"]], dims = 2:30)
@@ -101,6 +114,10 @@ atac <- AddMetaData(atac, pred)
 atac <- subset(atac, prediction.score.max > 0.5)            # drop ambiguous cells
 DefaultAssay(atac) <- "peaks"; Idents(atac) <- "predicted.id"
 ```
+
+![Fig. 14.3](figures/part14_umap.png)
+
+**[Fig. 14.3](figures/part14_umap.pdf) | Annotated UMAP.** UMAP of the LSI embedding (components 2–30) coloured by cell types transferred from scRNA-seq. *Simulated data.*
 
 ---
 
@@ -148,7 +165,13 @@ DefaultAssay(atac) <- "chromvar"
 tcf7_id <- ConvertMotifID(atac, name = "TCF7", assay = "ct_peaks")
 FeaturePlot(atac, features = tcf7_id, min.cutoff = "q5", max.cutoff = "q95",
             cols = c("#2166AC", "#F7F7F7", "#B2182B")) + ggtitle("TCF7 motif deviation")
+```
 
+![Fig. 14.4](figures/part14_chromvar_umap.png)
+
+**[Fig. 14.4](figures/part14_chromvar_umap.pdf) | Motif activity per cell.** Per-cell TCF7 motif deviation (chromVAR z-score). *Simulated data.*
+
+```r
 ## differential motif activity between cell types
 dm <- FindMarkers(atac, ident.1 = "Tex", ident.2 = "Tpex", mean.fxn = rowMeans,
                   fc.name = "avg_diff")
@@ -162,6 +185,10 @@ rownames(avg) <- mot
 ComplexHeatmap::Heatmap(avg, name = "deviation\n(z)", cluster_columns = FALSE,
                         col = circlize::colorRamp2(c(-2, 0, 2), c("#2166AC", "#F7F7F7", "#B2182B")))
 ```
+
+![Fig. 14.5](figures/part14_chromvar_heatmap.png)
+
+**[Fig. 14.5](figures/part14_chromvar_heatmap.pdf) | Motif activity per cell type.** Mean chromVAR deviation z-scores of selected TF motifs per cell type. *Simulated data.*
 
 **TF footprints** (aggregate Tn5 insertion around motif sites, bias-corrected):
 
@@ -194,6 +221,10 @@ p <- CoveragePlot(atac, region = "Tcf7", features = "Tcf7", expression.assay = "
 ggsave("coverage_Tcf7.pdf", p, width = 120, height = 100, units = "mm")
 ```
 
+![Fig. 14.6](figures/part14_coverage.png)
+
+**[Fig. 14.6](figures/part14_coverage.pdf) | Coverage tracks per cell type.** Pseudobulk chromatin accessibility per cell type at the *Tcf7* locus with called peaks and gene model (Signac `CoveragePlot` layout). *Simulated data.*
+
 `CoveragePlot` stacks: normalised accessibility per group, peaks, peak–gene links (arcs), gene model and (optionally) an expression violin per group. Use `region = "chr18-11500000-11600000"` for an arbitrary window, or `ranges = gr` to highlight regions such as DA peaks.
 
 ### Pseudobulk bigWigs for IGV / UCSC / deepTools
@@ -213,7 +244,7 @@ for f in *.bam; do samtools index $f; bamCoverage -b $f -o ${f%.bam}.cpm.bw \
     --normalizeUsing CPM --binSize 20 -p 8; done
 ```
 
-The pseudobulk bigWigs work with chapter 8 (deepTools heatmaps, UCSC tracks, Gviz).
+The pseudobulk bigWigs work with part 8 (deepTools heatmaps, UCSC tracks, Gviz).
 
 ### Pool several 10x libraries into one BAM
 
@@ -246,14 +277,6 @@ ArchR works from fragment files ("Arrow" files) and scales to hundreds of thousa
 | chromVAR | `addMotifAnnotations(motifSet = "cisbp")` → `addBgdPeaks()` → `addDeviationsMatrix(peakAnnotation = "Motif")` → `getVarDeviations()` |
 | Tracks | `plotBrowserTrack(proj, groupBy = "Clusters", geneSymbol = "Tcf7", upstream = 50000, downstream = 50000)` |
 | bigWigs | `getGroupBW(proj, groupBy = "Clusters")` |
-
----
-
-## Example output
-
-![Fig. 14](figures/fig14_scatac.png)
-
-**Fig. 14 | scATAC-seq analysis.** **a**, Fragment-length distribution showing nucleosome-free (NFR) and mono-, di- and tri-nucleosome fragments. **b**, TSS enrichment versus unique fragments per barcode (colour, point density); dashed lines, QC thresholds (TSS enrichment > 4, > 1,000 fragments). **c**, UMAP of the LSI embedding (components 2–30) coloured by cell types transferred from scRNA-seq. **d**, Mean chromVAR deviation z-scores of selected TF motifs per cell type. **e**, Per-cell TCF7 motif deviation. **f**, Pseudobulk chromatin accessibility per cell type at the *Tcf7* locus with called peaks and gene model (Signac `CoveragePlot` layout). *Simulated data for illustration.*
 
 ---
 

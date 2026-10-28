@@ -1,4 +1,4 @@
-# 8 · Signal visualization: heatmaps, pooled tracks, genome browser
+# Part 8 · Signal visualization: heatmaps, pooled tracks, genome browser
 
 [← Motif analysis](07_motif_analysis.md) · [Index](../README.md) · [Next: RNA-seq →](09_rnaseq.md)
 
@@ -26,11 +26,21 @@ plotHeatmap -m H3K27ac_union_center.mat.gz \
   --heatmapHeight 12 --heatmapWidth 3 \
   --legendLocation none --dpi 300 \
   -out H3K27ac_union_center_heatmap.pdf
+```
 
+![Fig. 8.1](figures/part08_heatmap.png)
+
+**[Fig. 8.1](figures/part08_heatmap.pdf) | Signal heatmap at union peaks.** CPM-normalized H3K27ac signal ±1 kb around each peak centre (rows) for pooled replicates of each condition, sorted by mean signal, on a shared colour scale. *Simulated data.*
+
+```bash
 # profile only
 plotProfile -m H3K27ac_union_center.mat.gz --perGroup --colors "#8C8C8C" "#0072B2" "#D55E00" \
   -out H3K27ac_union_center_profile.pdf
 ```
+
+![Fig. 8.2](figures/part08_profile.png)
+
+**[Fig. 8.2](figures/part08_profile.pdf) | Average signal profile.** Mean CPM-normalized H3K27ac signal ±1 kb around peak centres for each condition. *Simulated data.*
 
 Useful variants:
 
@@ -137,22 +147,16 @@ for (i in seq_len(nrow(regions)))
   with(regions[i], plot_region(Chr, Start, End, Gene))
 ```
 
+![Fig. 8.3](figures/part08_genome_tracks.png)
+
+**[Fig. 8.3](figures/part08_genome_tracks.pdf) | Genome-browser view of a differential locus.** Pooled CPM-normalized H3K27ac tracks for each condition and IgG on a shared y axis (0–20), TEX-gained differential regions (DARs, DESeq2 FDR < 0.05) and the gene model. Scale bar, 10 kb. *Simulated data.*
+
 Tips:
 - Use **bigWig** `DataTrack`s; `AlignmentsTrack` on BAM files works but needs a lot of memory.
 - Use the same `ylim` for every condition, otherwise samples cannot be compared.
 - `UcscTrack(track = "knownGene", …)` fetches gene models online, which is convenient but slow and needs internet access on the node.
 
----
-
-## Example output
-
-![Fig. 3](figures/fig3_profile_heatmap.png)
-
-**Fig. 3 | H3K27ac signal at union peaks.** **a**, Mean CPM-normalized signal ±1 kb around peak centres for pooled replicates of each condition. **b**, Signal at each peak (rows), sorted by mean signal across conditions, on a shared colour scale. *Simulated data for illustration.*
-
-![Fig. 8](figures/fig8_genome_tracks.png)
-
-**Fig. 8 | Genome-browser view of a differential locus.** Pooled CPM-normalized H3K27ac tracks for each condition and IgG on a shared y-axis (0–20), TEX-gained differential regions (DARs, DESeq2 FDR < 0.05) and the gene model. Scale bar, 10 kb. *Simulated data for illustration.*
+To highlight differential regions and motif sites on the tracks, see [part 18](18_gviz_tracks.md).
 
 ---
 

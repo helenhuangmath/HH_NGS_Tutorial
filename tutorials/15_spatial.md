@@ -1,6 +1,6 @@
-# 15 · Spatial transcriptomics: integrating sections with Scanpy + Harmony
+# Part 15 · Spatial transcriptomics: integrating sections with Scanpy + Harmony
 
-[← scATAC-seq](14_scatacseq.md) · [Index](../README.md)
+[← scATAC-seq](14_scatacseq.md) · [Index](../README.md) · [Next: PCA plots →](16_pca_plot.md)
 
 Several tissue sections or regions of interest (ROIs) are clustered **jointly**, so that a cluster means the same tissue domain in every section. Batch effects between sections are corrected with Harmony before building the neighbour graph.
 
@@ -74,7 +74,17 @@ import matplotlib.pyplot as plt
 
 # before vs after integration (run PCA-based UMAP once without Harmony for the "before" view)
 sc.pl.umap(adata, color=["sample", "clusters"], wspace=0.4, save=f"_afterHarmony_{tag}.pdf", show=False)
+```
 
+![Fig. 15.1](figures/part15_umap_before.png)
+
+**[Fig. 15.1](figures/part15_umap_before.pdf) | UMAP before integration.** Spots coloured by genotype; sections separate by batch. *Simulated data.*
+
+![Fig. 15.2](figures/part15_umap_after.png)
+
+**[Fig. 15.2](figures/part15_umap_after.pdf) | UMAP after Harmony.** Spots coloured by Leiden cluster after Harmony integration. *Simulated data.*
+
+```python
 # clusters on tissue coordinates, one panel per section
 fig, axes = plt.subplots(2, 4, figsize=(7.2, 3.6))
 for ax, s in zip(axes.ravel(), samples):
@@ -82,16 +92,36 @@ for ax, s in zip(axes.ravel(), samples):
                     title=s, ax=ax, show=False, legend_loc=None, s=8)
     ax.set_aspect("equal"); ax.axis("off")
 fig.savefig(f"figures/spatial_clusters_{tag}.pdf", bbox_inches="tight")
+```
 
+![Fig. 15.3](figures/part15_tissue_wt.png)
+
+**[Fig. 15.3](figures/part15_tissue_wt.pdf) | Clusters on a WT section.** Leiden clusters mapped back to tissue coordinates. Scale bar, 500 µm. *Simulated data.*
+
+![Fig. 15.4](figures/part15_tissue_ko.png)
+
+**[Fig. 15.4](figures/part15_tissue_ko.pdf) | Clusters on a KO section.** Same clusters on a KO section; a domain (cluster 4) expands compared with WT. *Simulated data.*
+
+```python
 # a gene on tissue
 sc.pl.embedding(adata[adata.obs["sample"] == "KO_S1_roi1"], basis="spatial", color="GeneX",
                 cmap="magma_r", vmax="p99", save=f"_GeneX_KO_S1_{tag}.pdf", show=False)
+```
 
+![Fig. 15.5](figures/part15_gene_on_tissue.png)
+
+**[Fig. 15.5](figures/part15_gene_on_tissue.pdf) | Marker expression on tissue.** Expression of a cluster-4 marker on the KO section. *Simulated data.*
+
+```python
 # cluster composition per section
 comp = pd.crosstab(adata.obs["sample"], adata.obs["clusters"], normalize="index")
 comp.plot(kind="barh", stacked=True, width=0.7, figsize=(3.5, 2.2), legend=False)
 plt.xlabel("Fraction of spots"); plt.tight_layout(); plt.savefig(f"figures/composition_{tag}.pdf")
 ```
+
+![Fig. 15.6](figures/part15_composition.png)
+
+**[Fig. 15.6](figures/part15_composition.pdf) | Cluster composition per section.** Fraction of spots in each cluster per section. *Simulated data.*
 
 Markers per cluster and genotype comparisons:
 
@@ -100,7 +130,7 @@ sc.tl.rank_genes_groups(adata, groupby="clusters", method="wilcoxon")
 sc.pl.rank_genes_groups_dotplot(adata, n_genes=5, save=f"_markers_{tag}.pdf", show=False)
 ```
 
-For KO vs WT within a cluster, use pseudobulk counts per section (`adata.layers["counts"]` summed by `sample` × `clusters`) with DESeq2 (chapter 5); spots from one section are not independent replicates.
+For KO vs WT within a cluster, use pseudobulk counts per section (`adata.layers["counts"]` summed by `sample` × `clusters`) with DESeq2 (part 5); spots from one section are not independent replicates.
 
 ### Spatial statistics (Squidpy)
 
@@ -111,14 +141,6 @@ sq.gr.nhood_enrichment(adata, cluster_key="clusters")     # which clusters are n
 sq.pl.nhood_enrichment(adata, cluster_key="clusters", cmap="RdBu_r")
 sq.gr.spatial_autocorr(adata, mode="moran")                # spatially variable genes (Moran's I)
 ```
-
----
-
-## Example output
-
-![Fig. 15](figures/fig15_spatial.png)
-
-**Fig. 15 | Integration of spatial transcriptomics sections.** **a**, UMAP before integration coloured by genotype; sections separate by batch. **b**, UMAP after Harmony coloured by Leiden cluster. **c**, Cluster composition per section. **d**,**e**, Clusters mapped back to tissue coordinates in a WT and a KO section; a domain (cluster 4) expands in the KO section. **f**, Expression of a cluster-4 marker on the KO section. Scale bar, 500 µm. *Simulated data for illustration.*
 
 ---
 
@@ -133,4 +155,4 @@ sq.gr.spatial_autocorr(adata, mode="moran")                # spatially variable 
 
 ---
 
-[← scATAC-seq](14_scatacseq.md) · [Index](../README.md)
+[← scATAC-seq](14_scatacseq.md) · [Index](../README.md) · [Next: PCA plots →](16_pca_plot.md)

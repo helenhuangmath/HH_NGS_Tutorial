@@ -1,4 +1,4 @@
-# 7 · Motif enrichment, footprinting and TF–gene networks
+# Part 7 · Motif enrichment, footprinting and TF–gene networks
 
 [← Annotation & enrichment](06_annotation_enrichment.md) · [Index](../README.md) · [Next: Visualization →](08_visualization.md)
 
@@ -121,6 +121,10 @@ p <- ggplot(d, aes(Compare, Motif, size = FC, colour = log10P)) +
 ggsave("p_dot_knownMotifs_top5.pdf", p, width = 60, height = 70, units = "mm")
 ```
 
+![Fig. 7.1](figures/part07_known_motifs.png)
+
+**[Fig. 7.1](figures/part07_known_motifs.pdf) | Known motifs per comparison.** HOMER known motifs enriched in TEX-gained (up) or TEX-lost (down) regions against the union-peak background. Dot size, fold enrichment over background; colour, −log₁₀ *P*. *Simulated data.*
+
 ### Pairwise (signed) motif plot
 
 ```r
@@ -136,6 +140,10 @@ p <- ggplot(P, aes(log10P, FC.dir, colour = Compare)) +
   theme_nature() + theme(legend.position = "none")
 ggsave("p_pairwise_knownMotifs.pdf", p, width = 80, height = 70, units = "mm")
 ```
+
+![Fig. 7.2](figures/part07_signed_enrichment.png)
+
+**[Fig. 7.2](figures/part07_signed_enrichment.pdf) | Signed motif enrichment.** All known motifs as signed fold enrichment (positive, up regions; negative, down regions) against significance; the strongest motifs are labelled. *Simulated data.*
 
 ### Publication sequence logos (de novo motifs)
 
@@ -159,6 +167,10 @@ p <- ggseqlogo(pwms, method = "bits", ncol = 1) + theme_nature() +
 ggsave("p_logos_denovo_up.pdf", p, width = 60, height = 80, units = "mm")
 ```
 
+![Fig. 7.3](figures/part07_denovo_logos.png)
+
+**[Fig. 7.3](figures/part07_denovo_logos.pdf) | Top de novo motifs.** HOMER de novo motifs from TEX-gained (orange) and TEX-lost (blue) regions: sequence logo (information content, bits), best-matching known motif, enrichment *P* value, and percentage of target versus background regions containing the motif. *Simulated data.*
+
 The best-match name, *P* value and % target/background for each motif are in the header line and in `homerResults.html`.
 
 ### % of regions with each motif
@@ -179,6 +191,10 @@ ggplot(d, aes(Pct, Motif, fill = Set)) +
   labs(x = "Regions with motif (%)", y = NULL, fill = NULL) + theme_nature()
 ```
 
+![Fig. 7.4](figures/part07_motif_frequency.png)
+
+**[Fig. 7.4](figures/part07_motif_frequency.pdf) | Regions containing each motif.** Percentage of TEX-up, TEX-down and background regions containing each motif. *Simulated data.*
+
 ### Motif position relative to peak centres
 
 A real TF motif should be concentrated at peak centres (summits); a motif that is flat across the window is usually background sequence composition.
@@ -190,6 +206,10 @@ annotatePeaks.pl DESeq2/deseq2_Sig_Up.bed6.bed mm10 -size 1000 -hist 10 \
 annotatePeaks.pl Peak/peak_Union_H3K27ac.bed6.bed mm10 -size 1000 -hist 10 \
   -m Motif/homer_Sig_Up_bcUnion/knownResults/known1.motif > Motif/hist_BATF_union.txt
 ```
+
+![Fig. 7.5](figures/part07_motif_centrality.png)
+
+**[Fig. 7.5](figures/part07_motif_centrality.pdf) | Motif centrality.** BATF motif density around peak summits (`annotatePeaks.pl -hist`): sharply centred enrichment in TEX-gained peaks compared with the union background. *Simulated data.*
 
 ```r
 h <- bind_rows(
@@ -244,6 +264,10 @@ ggplot(st, aes(TF_Activity, -log10(P_values))) +
   labs(x = "TF activity score (TEX − TMEM)", y = expression(-log[10]~italic(P))) + theme_nature()
 ```
 
+![Fig. 7.6](figures/part07_tf_activity.png)
+
+**[Fig. 7.6](figures/part07_tf_activity.pdf) | Differential TF activity.** HINT differential TF activity (TEX − TMEM) against significance; dashed line, *P* = 10⁻³. *Simulated data.*
+
 Custom footprint profiles: write bias-corrected signal as bigWig, then aggregate it at the motif-matched sites with deepTools:
 
 ```bash
@@ -254,6 +278,10 @@ computeMatrix reference-point --referencePoint center -S TMEM_bc.bw TEX_bc.bw \
   -R BATF_sites.bed -a 100 -b 100 --binSize 1 -o BATF_footprint.mat.gz
 plotProfile -m BATF_footprint.mat.gz --perGroup --colors "#0072B2" "#D55E00" -out BATF_footprint.pdf
 ```
+
+![Fig. 7.7](figures/part07_footprint.png)
+
+**[Fig. 7.7](figures/part07_footprint.pdf) | BATF footprint.** HINT bias-corrected Tn5 cleavage around BATF motif sites. Higher flanking accessibility and a deeper central dip (footprint) in TEX indicate greater BATF occupancy; grey band, motif. *Simulated data.*
 
 For single-end ATAC drop `--paired-end`. For DNase-seq use `--dnase-seq`; for histone CUT&RUN/ChIP use `--histone`.
 
@@ -289,18 +317,6 @@ grep SE SE_TEXonly_TF_IRF1_binding_genes.peakNames.txt \
 ```
 
 In Cytoscape: *File → Import → Network from File*, with source = `TF` and target = `Gene`. Map node size to degree.
-
----
-
-## Example output
-
-![Fig. 10](figures/fig10_motif_results.png)
-
-**Fig. 10 | Motif analysis results.** **a**, Top HOMER de novo motifs from TEX-gained (orange) and TEX-lost (blue) H3K27ac regions: sequence logo (information content, bits), best-matching known motif, enrichment *P* value, and percentage of target regions versus background regions containing the motif. **b**, BATF motif density around peak centres (`annotatePeaks.pl -hist`): sharply centred enrichment in TEX-gained peaks compared with the union background. **c**, Percentage of TEX-up, TEX-down and background regions containing each motif. **d**, HINT bias-corrected Tn5 cleavage around BATF motif sites; increased flanking accessibility and a deeper central dip (footprint) in TEX indicate greater BATF occupancy. **e**, HINT differential TF activity (TEX − TMEM) against significance; dashed line, *P* = 10⁻³. *Simulated data for illustration.*
-
-![Fig. 6](figures/fig6_motif_enrichment.png)
-
-**Fig. 6 | Motif enrichment at differential H3K27ac regions.** **a**, HOMER known motifs enriched in TEX-gained (up) or TEX-lost (down) regions against the union-peak background; dot size, fold enrichment over background; colour, −log₁₀ *P*. **b**, All known motifs plotted as signed fold enrichment (positive = up regions, negative = down regions) against significance; the strongest motifs are labelled. **c**, see chapter 6. *Simulated data for illustration.*
 
 ---
 

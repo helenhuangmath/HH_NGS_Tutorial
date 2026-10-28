@@ -1,8 +1,8 @@
-# 9 · Bulk RNA-seq: STAR → counts → clustered heatmap → GSEA
+# Part 9 · Bulk RNA-seq: STAR → counts → clustered heatmap → GSEA
 
 [← Visualization](08_visualization.md) · [Index](../README.md) · [Next: TSA-seq →](10_tsa_seq.md)
 
-Differential expression uses the same DESeq2 code as chapter 5, with genes in place of peaks.
+Differential expression uses the same DESeq2 code as part 5, with genes in place of peaks.
 
 ---
 
@@ -45,7 +45,7 @@ For single-end reads, give one FASTQ to `--readFilesIn`. Build the index once wi
 | `*_ReadsPerGene.out.tab` | counts: col 2 unstranded, col 3 forward, col 4 reverse |
 | `*_Aligned.sortedByCoord.out.bam` | coordinate-sorted BAM |
 
-Check strandedness with RSeQC (chapter 2.4) and pick the matching column.
+Check strandedness with RSeQC (part 2.4) and pick the matching column.
 
 ---
 
@@ -153,13 +153,19 @@ draw(ht, merge_legend = TRUE, heatmap_legend_side = "right")
 dev.off()
 ```
 
+![Fig. 9.1](figures/part09_kmeans_heatmap.png)
+
+**[Fig. 9.1](figures/part09_kmeans_heatmap.pdf) | k-means clustered heatmap of DEGs.** Row-scaled expression (z-score) of DEGs from any pairwise comparison (DESeq2 FDR < 0.05, fold change > 1.5) across four replicates per condition, split into seven k-means clusters (C1–C7, left bar). Right, direction of change in each pairwise contrast (orange, up; blue, down; white, not significant). *Simulated data.*
+
 > `use_raster = TRUE` keeps PDFs with thousands of rows small. Journals accept rasterized heatmap cells inside a vector figure.
+
+For a heatmap split by condition with selected genes labelled, see [part 17](17_complexheatmap.md).
 
 ---
 
 ## 9.4 Gene set enrichment analysis (GSEA)
 
-GSEA tests whether the genes of a set (e.g. exhausted T-cell subset signatures) sit at the top or bottom of a list of **all** genes ranked by the DE statistic. Unlike over-representation analysis (chapter 6), no DEG cut-off is used, so do not pre-filter the ranked list.
+GSEA tests whether the genes of a set (e.g. exhausted T-cell subset signatures) sit at the top or bottom of a list of **all** genes ranked by the DE statistic. Unlike over-representation analysis (part 6), no DEG cut-off is used, so do not pre-filter the ranked list.
 
 ### Ranked list from DESeq2
 
@@ -208,7 +214,7 @@ Both options feed the same plot. GSEA's per-set table lists only the genes in th
 
 ```r
 library(ggplot2)
-# theme_nature() and save_fig() are defined in chapter 5
+# theme_nature() and save_fig() are defined in part 5
 
 ## full running-ES curve from a GSEA <SET_NAME>.tsv; n_genes = length of the ranked list
 es_from_gsea <- function(tab, n_genes) {
@@ -298,14 +304,6 @@ bsub -n 16 -M 65536 -o log_cnt.o -e log_cnt.e \
 ```
 
 `-r` = read length; `-s` = strandedness (0 unstranded, 1 forward, 2 reverse). Output: locus- and subfamily-level TE counts for `squire Call` (DESeq2).
-
----
-
-## Example output
-
-![Fig. 7](figures/fig7_rna_kmeans_heatmap.png)
-
-**Fig. 7 | Expression patterns of differentially expressed genes.** Row-scaled expression (z-score) of DEGs from any pairwise comparison (DESeq2 FDR < 0.05, fold change > 1.5) across four replicates per condition, split into seven k-means clusters (C1–C7, left bar). Right, direction of change in each pairwise contrast (orange, up; blue, down; white, not significant). *Simulated data for illustration.*
 
 ---
 

@@ -1,4 +1,4 @@
-# 1 · Getting data in and out
+# Part 1 · Getting data in and out
 
 [← Setup](00_setup.md) · [Index](../README.md) · [Next: QC & trimming →](02_qc_trimming.md)
 

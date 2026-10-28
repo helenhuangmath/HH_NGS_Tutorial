@@ -1,4 +1,4 @@
-# 5 · Read counting and differential peak analysis
+# Part 5 · Read counting and differential peak analysis
 
 [← Peak calling](04_peak_calling.md) · [Index](../README.md) · [Next: Annotation & enrichment →](06_annotation_enrichment.md)
 
@@ -194,7 +194,13 @@ plotpca <- function(mat, condition, name, colorset = cond_cols, ntop = 5000) {
 }
 ```
 
+![Fig. 5.1](figures/part05_pca.png)
+
+**[Fig. 5.1](figures/part05_pca.pdf) | PCA of samples.** PCA of log-transformed normalized counts at the 5,000 most variable peaks; replicates cluster by condition. *Simulated data.*
+
 (DESeq2 alternative: `plotPCA(vst(dds), intgroup = "Condition")`. Log transformation or VST stops a few very strong peaks from dominating the PCs.)
+
+For colour + shape by guide and PC2/PC3 plots, see [part 16](16_pca_plot.md).
 
 ### Sample correlation heatmap
 
@@ -210,6 +216,10 @@ plotcorr <- function(mat, condition, name, colorset = cond_cols) {
            filename = paste0("plot_Corr_", name, ".pdf"))
 }
 ```
+
+![Fig. 5.2](figures/part05_correlation.png)
+
+**[Fig. 5.2](figures/part05_correlation.pdf) | Sample correlation.** Pearson correlation between samples on log-transformed normalized counts. *Simulated data.*
 
 ### MA and volcano plots
 
@@ -239,12 +249,22 @@ plotvol <- function(res, name, fc = 1.5, alpha = 0.05, label_top = 10, label_col
   save_fig(p, paste0("plot_Volcano_", name, ".pdf"), w = 60, h = 60)
   p
 }
+```
 
+![Fig. 5.3](figures/part05_volcano.png)
+
+**[Fig. 5.3](figures/part05_volcano.pdf) | Volcano plot.** TEX versus TN (DESeq2). Coloured points, FDR < 0.05 and |fold change| > 1.5 (dashed lines); the most significant loci are labelled and the numbers of up and down peaks are shown at the top. *Simulated data.*
+
+```r
 # MA plot straight from DESeq2
 pdf("plot_MA_H3K27ac.pdf", width = 2.4, height = 2.2, pointsize = 7)
 plotMA(res, ylim = c(-6, 6), alpha = 0.05, colSig = "#D55E00")
 dev.off()
 ```
+
+![Fig. 5.4](figures/part05_ma.png)
+
+**[Fig. 5.4](figures/part05_ma.pdf) | MA plot.** Log₂ fold change (TEX/TN) against mean normalized count; coloured points have FDR < 0.05 and |fold change| > 1.5. *Simulated data.*
 
 ### Box plot with Wilcoxon P values
 
@@ -272,6 +292,10 @@ p <- ggplot(long, aes(Cond, log2(NormRC + 1), fill = Cond)) +
 save_fig(p, "p_box_NormRC_H3K27ac.pdf", w = 45, h = 55)
 ```
 
+![Fig. 5.5](figures/part05_boxplot.png)
+
+**[Fig. 5.5](figures/part05_boxplot.pdf) | Signal at differential regions.** Normalized H3K27ac signal at differential regions across conditions. Box, interquartile range; centre line, median; triangle, mean; whiskers, 1.5× IQR. Dashed line, TN median. Two-sided Wilcoxon rank-sum test; \*\*\*\**P* < 10⁻⁴. *Simulated data.*
+
 > With thousands of peaks, almost any shift gives *P* < 10⁻⁴. Report the effect size (median difference) next to the *P* value, and state the test and *n* in the legend.
 
 ### Pie or bar of up/down counts
@@ -296,18 +320,6 @@ summary(pc)$importance[2, 1:5]                         # variance explained
 head(sort(pc$rotation[, 1], decreasing = TRUE), 30)
 head(sort(pc$rotation[, 1]), 30)
 ```
-
----
-
-## Example output
-
-![Fig. 4](figures/fig4_differential.png)
-
-**Fig. 4 | Differential H3K27ac analysis.** **a**, PCA of log-transformed normalized counts at the 5,000 most variable peaks; replicates cluster by condition. **b**, Pearson correlation between samples. **c**, MA plot of TEX versus TN (DESeq2); coloured points have FDR < 0.05 and |fold change| > 1.5. **d**, Volcano plot of the same contrast with the most significant loci labelled; dashed lines mark the thresholds. *Simulated data for illustration.*
-
-![Fig. 5c](figures/fig5_annotation_boxplot.png)
-
-**Fig. 5 | (panel c)** Normalized H3K27ac signal at differential regions across conditions. Box, interquartile range; centre line, median; triangle, mean; whiskers, 1.5× IQR. The dashed line marks the TN median. Two-sided Wilcoxon rank-sum test; \*\*\*\**P* < 10⁻⁴. Panels a and b are described in chapter 6. *Simulated data.*
 
 ---
 
